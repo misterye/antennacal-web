@@ -1,0 +1,26 @@
+<svg width="256" height="256" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" version="1.1">
+   <circle cx="50" cy="50" r="48" fill="#0A1931"/>
+
+  <g fill="#FFFFFF" opacity="0.7">
+  <circle cx="25" cy="25" r="1.5"/>
+  <circle cx="80" cy="60" r="1"/>
+  <circle cx="75" cy="80" r="1.2"/>
+  <circle cx="30" cy="75" r="0.8"/>
+ </g>
+
+  <g id="satellite" transform="translate(70, 25) rotate(45)">
+  <rect x="-5" y="-2" width="10" height="4" fill="#EAFDFC" rx="1"/>
+  <rect x="-8" y="-1" width="16" height="2" fill="#9DD8F5"/>
+ </g>
+
+  <path d="M 45 60 L 72 32" stroke="#4FB8FF" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+  <g id="ground-station">
+    <path d="M 50 88 L 48 95 L 52 95 Z" fill="#B0C4DE"/>
+  <rect x="47" y="86" width="6" height="3" fill="#B0C4DE" rx="1"/>
+    <path d="M 30 70 Q 50 90 70 70 L 65 65 Q 50 80 35 65 Z" fill="#EAFDFC"/>
+    <circle cx="50" cy="72" r="2.5" fill="#0A1931"/>
+  <circle cx="50" cy="72" r="1.5" fill="#4FB8FF"/>
+ </g>
+
+</svg>
