@@ -1,12 +1,12 @@
 <template>
   <div class="map-container">
     <div id="map"></div>
-    <div class="south-indicator">向下为正南</div>
+    <div class="south-indicator">{{ southText }}</div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue';
+import { onMounted, watch, computed } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -22,32 +22,66 @@ const props = defineProps({
   azimuth: {
     type: Number,
     default: 0
+  },
+  language: {
+    type: String,
+    default: 'zh'
   }
 });
 
 let map = null;
 let marker = null;
 
-// Custom icon for direction
-const createIcon = (rotation) => {
-    // Leaflet icon rotation using CSS transform
-    return L.divIcon({
-        className: 'custom-marker',
-        html: `<img src="/marker.png" style="transform: rotate(${rotation}deg); width: 34px; height: 34px; display: block;" />`,
-        iconSize: [34, 34],
-        iconAnchor: [17, 17] // Center anchor
-    });
+// 多语言文本
+const southText = computed(() => {
+  return props.language === 'zh' ? '向下为正南' : 'South ↓';
+});
+
+// 创建箭头图标
+const createArrowIcon = (rotation) => {
+  const arrowSvg = `
+    <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#ee5a6f;stop-opacity:1" />
+        </linearGradient>
+        <filter id="shadow">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.5"/>
+        </filter>
+      </defs>
+      <!-- 箭头主体 -->
+      <g transform="rotate(${rotation} 25 25)" filter="url(#shadow)">
+        <!-- 箭头杆 -->
+        <rect x="21" y="15" width="8" height="20" fill="url(#arrowGradient)" rx="2"/>
+        <!-- 箭头头部 -->
+        <path d="M 25 5 L 10 20 L 18 20 L 18 15 L 32 15 L 32 20 L 40 20 Z" fill="url(#arrowGradient)"/>
+        <!-- 白色边框增强可见度 -->
+        <path d="M 25 5 L 10 20 L 18 20 L 18 15 L 32 15 L 32 20 L 40 20 Z" 
+              fill="none" stroke="white" stroke-width="1.5" opacity="0.8"/>
+        <rect x="21" y="15" width="8" height="20" fill="none" 
+              stroke="white" stroke-width="1.5" opacity="0.8" rx="2"/>
+      </g>
+    </svg>
+  `;
+  
+  return L.divIcon({
+    className: 'arrow-marker',
+    html: arrowSvg,
+    iconSize: [50, 50],
+    iconAnchor: [25, 25] // 中心锚点
+  });
 };
 
 const initMap = () => {
-  // Check if map container exists
+  // 检查地图容器是否存在
   if (!document.getElementById('map')) return;
 
   const lat = parseFloat(props.latitude) || 30;
   const lng = parseFloat(props.longitude) || 120;
 
   if (map) {
-      map.remove();
+    map.remove();
   }
 
   map = L.map('map').setView([lat, lng], 13);
@@ -60,23 +94,43 @@ const initMap = () => {
 };
 
 const updateMarker = () => {
-    if (!map) return;
+  if (!map) return;
 
-    const lat = parseFloat(props.latitude);
-    const lng = parseFloat(props.longitude);
+  const lat = parseFloat(props.latitude);
+  const lng = parseFloat(props.longitude);
+  
+  if (isNaN(lat) || isNaN(lng)) return;
+
+  // 箭头指向方位角方向（0度为北，顺时针）
+  const rotation = props.azimuth;
+
+  // 生成 tooltip 文本
+  const tooltipText = props.language === 'zh' 
+    ? `方位角: ${Math.round(props.azimuth)}°` 
+    : `Azimuth: ${Math.round(props.azimuth)}°`;
+
+  if (marker) {
+    // 更新现有 marker
+    marker.setLatLng([lat, lng]);
+    marker.setIcon(createArrowIcon(rotation));
+    // 更新 tooltip 内容
+    marker.setTooltipContent(tooltipText);
+    marker.options.title = props.language === 'zh' ? '天线指向' : 'Antenna Direction';
+  } else {
+    // 创建新 marker
+    marker = L.marker([lat, lng], { 
+      icon: createArrowIcon(rotation),
+      title: props.language === 'zh' ? '天线指向' : 'Antenna Direction'
+    }).addTo(map);
     
-    if (isNaN(lat) || isNaN(lng)) return;
-
-    const rotation = props.azimuth + 180; // Match the original logic: azimuth + 180
-
-    if (marker) {
-        marker.setLatLng([lat, lng]);
-        marker.setIcon(createIcon(rotation));
-    } else {
-        marker = L.marker([lat, lng], { icon: createIcon(rotation) }).addTo(map);
-    }
-    
-    map.setView([lat, lng], map.getZoom());
+    // 绑定 tooltip
+    marker.bindTooltip(tooltipText, {
+      permanent: false,
+      direction: 'top'
+    });
+  }
+  
+  map.setView([lat, lng], map.getZoom());
 };
 
 onMounted(() => {
@@ -84,7 +138,18 @@ onMounted(() => {
 });
 
 watch(() => [props.latitude, props.longitude, props.azimuth], () => {
-    updateMarker();
+  updateMarker();
+});
+
+watch(() => props.language, () => {
+  // 更新提示文本
+  if (marker) {
+    const tooltipText = props.language === 'zh' 
+      ? `方位角: ${Math.round(props.azimuth)}°` 
+      : `Azimuth: ${Math.round(props.azimuth)}°`;
+    marker.setTooltipContent(tooltipText);
+    marker.options.title = props.language === 'zh' ? '天线指向' : 'Antenna Direction';
+  }
 });
 
 </script>
@@ -93,23 +158,33 @@ watch(() => [props.latitude, props.longitude, props.azimuth], () => {
 .map-container {
   width: 100%;
   height: 100%;
-  min-height: 300px; /* Ensure map has height */
+  min-height: 300px;
   position: relative;
 }
+
 #map {
   width: 100%;
   height: 100%;
 }
+
 .south-indicator {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 2px 5px;
-    border-radius: 5px;
-    font-size: 12px;
-    color: #555;
-    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-    z-index: 1000; /* Ensure it's above the map */
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* 移除箭头标记的默认样式 */
+:deep(.arrow-marker) {
+  background: transparent !important;
+  border: none !important;
 }
 </style>

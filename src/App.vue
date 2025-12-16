@@ -2,16 +2,21 @@
   <div class="app-wrapper" :class="{ 'dark-theme': isDarkTheme }">
     <div class="container">
     <header class="header">
-      <h1 class="title">卫星天线参数计算器</h1>
-      <button @click="toggleTheme" class="theme-toggle" :title="isDarkTheme ? '切换到亮主题' : '切换到暗主题'">
-        <span v-if="isDarkTheme">☀️</span>
-        <span v-else>🌙</span>
-      </button>
+      <h1 class="title">{{ t.title }}</h1>
+      <div class="header-buttons">
+        <button @click="toggleLanguage" class="lang-toggle" :title="t.switchLanguage">
+          <span>{{ currentLang === 'zh' ? 'EN' : '中' }}</span>
+        </button>
+        <button @click="toggleTheme" class="theme-toggle" :title="isDarkTheme ? t.switchToLight : t.switchToDark">
+          <span v-if="isDarkTheme">☀️</span>
+          <span v-else>🌙</span>
+        </button>
+      </div>
     </header>
 
     <div class="input-section">
       <div class="location-row">
-        <label class="label">卫星选择</label>
+        <label class="label">{{ t.satelliteSelect }}</label>
         <select v-model="selectedSatelliteName" class="picker-view">
           <option v-for="name in satelliteNames" :key="name" :value="name">
             {{ name }}
@@ -22,59 +27,60 @@
 
     <div class="input-section location-input">
       <div class="location-row">
-        <label class="label">小站纬度</label>
+        <label class="label">{{ t.stationLatitude }}</label>
         <input 
           type="number" 
           v-model="latitude" 
-          placeholder="例如: 30.00" 
+          :placeholder="t.latitudePlaceholder" 
           class="input"
         />
       </div>
       <div class="location-row">
-        <label class="label">小站经度</label>
+        <label class="label">{{ t.stationLongitude }}</label>
         <input 
           type="number" 
           v-model="longitude" 
-          placeholder="例如: 120.00" 
+          :placeholder="t.longitudePlaceholder" 
           class="input"
         />
       </div>
-      <button @click="getLocation" class="location-button enhanced-button">获取位置</button>
+      <button @click="getLocation" class="location-button enhanced-button">{{ t.getLocation }}</button>
     </div>
 
-    <button @click="handleCalculate" class="calculate-button enhanced-button">计算参数</button>
+    <button @click="handleCalculate" class="calculate-button enhanced-button">{{ t.calculate }}</button>
 
     <div class="output-section">
       <div class="output-header">
-        <h2 class="output-title">计算结果</h2>
+        <h2 class="output-title">{{ t.results }}</h2>
       </div>
       <div class="output-item">
-        <span class="output-label">轨道经度：</span>
+        <span class="output-label">{{ t.orbitalLongitude }}</span>
         <span class="output-text">{{ orbitalLongitude }}</span>
       </div>
       <div class="output-item">
-        <span class="output-label">俯仰角：</span>
+        <span class="output-label">{{ t.elevation }}</span>
         <span class="output-text">{{ elevation }}</span>
       </div>
       <div class="output-item">
-        <span class="output-label">方位角：</span>
+        <span class="output-label">{{ t.azimuth }}</span>
         <span class="output-text">{{ azimuth }}</span>
       </div>
       <div class="output-item">
-        <span class="output-label">极化角：</span>
+        <span class="output-label">{{ t.polarization }}</span>
         <span class="output-text">{{ polarization }}</span>
       </div>
     </div>
 
     <div class="map-section">
       <div class="map-header">
-        <h2 class="map-title">位置及天线方位</h2>
+        <h2 class="map-title">{{ t.mapTitle }}</h2>
       </div>
       <div class="map-wrapper">
         <MapView 
           :latitude="latitude" 
           :longitude="longitude" 
           :azimuth="azimuthValue"
+          :language="currentLang"
         />
       </div>
     </div>
@@ -83,8 +89,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { satelliteData, calculateParameters } from './utils/calculate';
+import { translations } from './utils/i18n';
 import MapView from './components/MapView.vue';
 
 const satelliteNames = Object.keys(satelliteData);
@@ -97,11 +104,22 @@ const azimuth = ref('');
 const polarization = ref('');
 const azimuthValue = ref(0);
 
+// 语言管理
+const currentLang = ref('zh');
+const t = computed(() => translations[currentLang.value]);
+
 // 主题管理
 const isDarkTheme = ref(false);
 
-// 初始化主题
+// 初始化
 onMounted(() => {
+  // 初始化语言
+  const savedLang = localStorage.getItem('language');
+  if (savedLang && (savedLang === 'zh' || savedLang === 'en')) {
+    currentLang.value = savedLang;
+  }
+  
+  // 初始化主题
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'dark') {
     isDarkTheme.value = true;
@@ -113,6 +131,12 @@ onMounted(() => {
     isDarkTheme.value = prefersDark;
   }
 });
+
+// 切换语言
+const toggleLanguage = () => {
+  currentLang.value = currentLang.value === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('language', currentLang.value);
+};
 
 // 切换主题
 const toggleTheme = () => {
@@ -126,15 +150,15 @@ const getLocation = () => {
       (position) => {
         latitude.value = position.coords.latitude.toFixed(2);
         longitude.value = position.coords.longitude.toFixed(2);
-        alert('位置获取成功！');
+        alert(t.value.locationSuccess);
       },
       (error) => {
         console.error("Error getting location:", error);
-        alert('获取位置失败，请手动输入');
+        alert(t.value.locationError);
       }
     );
   } else {
-    alert('您的浏览器不支持地理定位');
+    alert(t.value.locationNotSupported);
   }
 };
 
@@ -152,7 +176,7 @@ const handleCalculate = () => {
     polarization.value = result.polarization;
     azimuthValue.value = result.azimuthValue;
   } else {
-    alert('请输入有效的经纬度并选择卫星');
+    alert(t.value.invalidInput);
   }
 };
 </script>
@@ -185,12 +209,41 @@ const handleCalculate = () => {
   font-weight: bold;
 }
 
-/* 主题切换按钮 */
-.theme-toggle {
+/* 头部按钮容器 */
+.header-buttons {
   position: absolute;
   right: 0;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+}
+
+/* 语言切换按钮 */
+.lang-toggle {
+  background: none;
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  color: #333;
+}
+
+.lang-toggle:hover {
+  transform: scale(1.1);
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* 主题切换按钮 */
+.theme-toggle {
   background: none;
   border: 2px solid #ddd;
   border-radius: 50%;
@@ -205,7 +258,7 @@ const handleCalculate = () => {
 }
 
 .theme-toggle:hover {
-  transform: translateY(-50%) scale(1.1);
+  transform: scale(1.1);
   border-color: #007bff;
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
@@ -335,6 +388,17 @@ const handleCalculate = () => {
 
 .dark-theme .title {
   color: #e0e0e0;
+}
+
+.dark-theme .lang-toggle {
+  border-color: #444;
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.dark-theme .lang-toggle:hover {
+  border-color: #007bff;
+  background-color: #333;
 }
 
 .dark-theme .theme-toggle {
