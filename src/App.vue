@@ -1,7 +1,11 @@
 <template>
-  <div class="container">
+  <div class="container" :class="{ 'dark-theme': isDarkTheme }">
     <header class="header">
       <h1 class="title">卫星天线参数计算器</h1>
+      <button @click="toggleTheme" class="theme-toggle" :title="isDarkTheme ? '切换到亮主题' : '切换到暗主题'">
+        <span v-if="isDarkTheme">☀️</span>
+        <span v-else>🌙</span>
+      </button>
     </header>
 
     <div class="input-section">
@@ -77,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { satelliteData, calculateParameters } from './utils/calculate';
 import MapView from './components/MapView.vue';
 
@@ -90,6 +94,29 @@ const elevation = ref('');
 const azimuth = ref('');
 const polarization = ref('');
 const azimuthValue = ref(0);
+
+// 主题管理
+const isDarkTheme = ref(false);
+
+// 初始化主题
+onMounted(() => {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    isDarkTheme.value = true;
+  } else if (savedTheme === 'light') {
+    isDarkTheme.value = false;
+  } else {
+    // 检测系统主题偏好
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    isDarkTheme.value = prefersDark;
+  }
+});
+
+// 切换主题
+const toggleTheme = () => {
+  isDarkTheme.value = !isDarkTheme.value;
+  localStorage.setItem('theme', isDarkTheme.value ? 'dark' : 'light');
+};
 
 const getLocation = () => {
   if (navigator.geolocation) {
@@ -134,11 +161,15 @@ const handleCalculate = () => {
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
+  background-color: #ffffff;
+  color: #333;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .header {
   text-align: center;
   margin-bottom: 20px;
+  position: relative;
 }
 
 .title {
@@ -146,11 +177,37 @@ const handleCalculate = () => {
   font-weight: bold;
 }
 
+/* 主题切换按钮 */
+.theme-toggle {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-50%) scale(1.1);
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
 .input-section {
   margin-bottom: 15px;
   padding: 10px;
   background-color: #f8f9fa;
   border-radius: 8px;
+  transition: background-color 0.3s ease;
 }
 
 .location-row {
@@ -162,6 +219,7 @@ const handleCalculate = () => {
 .label {
   width: 100px;
   font-weight: bold;
+  transition: color 0.3s ease;
 }
 
 .picker-view, .input {
@@ -169,7 +227,16 @@ const handleCalculate = () => {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-size: 16px; /* Prevent zoom on mobile */
+  font-size: 16px;
+  background-color: #ffffff;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.picker-view:focus, .input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
 .enhanced-button {
@@ -182,6 +249,7 @@ const handleCalculate = () => {
   font-size: 16px;
   cursor: pointer;
   margin-top: 10px;
+  transition: background-color 0.3s ease;
 }
 
 .enhanced-button:hover {
@@ -204,18 +272,22 @@ const handleCalculate = () => {
   border: 1px solid #eee;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  background-color: #ffffff;
+  transition: all 0.3s ease;
 }
 
 .output-header, .map-header {
   margin-bottom: 10px;
   border-bottom: 1px solid #eee;
   padding-bottom: 5px;
+  transition: border-color 0.3s ease;
 }
 
 .output-title, .map-title {
   font-size: 18px;
   color: #333;
   margin: 0;
+  transition: color 0.3s ease;
 }
 
 .output-item {
@@ -226,11 +298,13 @@ const handleCalculate = () => {
 
 .output-label {
   color: #666;
+  transition: color 0.3s ease;
 }
 
 .output-text {
   font-weight: bold;
   color: #333;
+  transition: color 0.3s ease;
 }
 
 .map-section {
@@ -242,5 +316,103 @@ const handleCalculate = () => {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #ccc;
+  transition: border-color 0.3s ease;
+}
+
+/* ========== 暗主题样式 ========== */
+.container.dark-theme {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.dark-theme .title {
+  color: #e0e0e0;
+}
+
+.dark-theme .theme-toggle {
+  border-color: #444;
+  background-color: #2a2a2a;
+}
+
+.dark-theme .theme-toggle:hover {
+  border-color: #007bff;
+  background-color: #333;
+}
+
+.dark-theme .input-section {
+  background-color: #2a2a2a;
+}
+
+.dark-theme .label {
+  color: #e0e0e0;
+}
+
+/* 重点：暗主题下输入框和选择框的文本为白色 */
+.dark-theme .picker-view,
+.dark-theme .input {
+  background-color: #333;
+  color: #ffffff;
+  border-color: #555;
+}
+
+.dark-theme .picker-view option {
+  background-color: #333;
+  color: #ffffff;
+}
+
+.dark-theme .picker-view:focus,
+.dark-theme .input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+/* 占位符文本在暗主题下也要可见 */
+.dark-theme .input::placeholder {
+  color: #999;
+  opacity: 1;
+}
+
+.dark-theme .enhanced-button {
+  background-color: #0d6efd;
+}
+
+.dark-theme .enhanced-button:hover {
+  background-color: #0b5ed7;
+}
+
+.dark-theme .location-button {
+  background-color: #198754;
+}
+
+.dark-theme .location-button:hover {
+  background-color: #157347;
+}
+
+.dark-theme .output-section {
+  background-color: #2a2a2a;
+  border-color: #444;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.dark-theme .output-header,
+.dark-theme .map-header {
+  border-bottom-color: #444;
+}
+
+.dark-theme .output-title,
+.dark-theme .map-title {
+  color: #e0e0e0;
+}
+
+.dark-theme .output-label {
+  color: #aaa;
+}
+
+.dark-theme .output-text {
+  color: #e0e0e0;
+}
+
+.dark-theme .map-wrapper {
+  border-color: #555;
 }
 </style>
