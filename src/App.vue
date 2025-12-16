@@ -84,6 +84,13 @@
         />
       </div>
     </div>
+
+    <!-- 实时罗盘对准 -->
+    <CompassAlignment 
+      v-if="azimuthValue > 0"
+      :targetAzimuth="azimuthValue"
+      :language="currentLang"
+    />
     </div>
   </div>
 </template>
@@ -93,6 +100,7 @@ import { ref, onMounted, computed } from 'vue';
 import { satelliteData, calculateParameters } from './utils/calculate';
 import { translations } from './utils/i18n';
 import MapView from './components/MapView.vue';
+import CompassAlignment from './components/CompassAlignment.vue';
 
 const satelliteNames = Object.keys(satelliteData);
 const selectedSatelliteName = ref(satelliteNames[0]);
