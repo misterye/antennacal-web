@@ -80,17 +80,6 @@
           <div class="debug-row">Device: {{ isAndroid ? 'Android' : 'iOS' }}{{ isXiaomi ? ' (Xiaomi)' : '' }}</div>
         </div>
         
-        <!-- 手动校准控件 -->
-        <div v-if="isActive" class="calibration-controls">
-          <div class="calibration-label">{{ t.calibration }}:</div>
-          <div class="calibration-buttons">
-            <button @click="adjustCalibration(-5)" class="calibration-btn">-5°</button>
-            <span class="calibration-value">{{ calibrationOffset }}°</span>
-            <button @click="adjustCalibration(5)" class="calibration-btn">+5°</button>
-            <button v-if="calibrationOffset !== 0" @click="resetCalibration" class="reset-btn">{{ t.reset }}</button>
-          </div>
-        </div>
-        
         <div v-if="isStableAligned" class="aligned-indicator">
           ✓ {{ t.aligned }}
         </div>
@@ -134,9 +123,7 @@ const translations = {
     difference: '偏差',
     aligned: '已对准！',
     turnLeft: '向左转',
-    turnRight: '向右转',
-    calibration: '校准偏移',
-    reset: '重置'
+    turnRight: '向右转'
   },
   en: {
     title: 'Real-time Compass',
@@ -149,9 +136,7 @@ const translations = {
     difference: 'Offset',
     aligned: 'Aligned!',
     turnLeft: 'Turn Left',
-    turnRight: 'Turn Right',
-    calibration: 'Calibration',
-    reset: 'Reset'
+    turnRight: 'Turn Right'
   }
 };
 
@@ -165,9 +150,6 @@ const rawHeading = ref(0);
 const smoothedHeading = ref(0);
 const sensorType = ref('');
 const showDebug = ref(false); // 设为 true 可显示调试信息
-
-// 校准偏移量（度数）
-const calibrationOffset = ref(0);
 
 // 设备检测
 const isAndroid = /android/i.test(navigator.userAgent);
@@ -321,9 +303,6 @@ const handleOrientation = (event) => {
       heading = 360 - heading;
     }
     
-    // 应用手动校准偏移量
-    heading = heading + calibrationOffset.value;
-    
     // 标准化到 0-360
     heading = heading % 360;
     if (heading < 0) heading += 360;
@@ -390,18 +369,6 @@ const stopCompass = () => {
   isActive.value = false;
   headingHistory.value = [];
   alignedHistory.value = [];
-};
-
-// 校准方法
-const adjustCalibration = (delta) => {
-  calibrationOffset.value += delta;
-  // 保持在 -180 到 180 范围内
-  while (calibrationOffset.value > 180) calibrationOffset.value -= 360;
-  while (calibrationOffset.value < -180) calibrationOffset.value += 360;
-};
-
-const resetCalibration = () => {
-  calibrationOffset.value = 0;
 };
 
 onMounted(() => {
@@ -745,78 +712,5 @@ onUnmounted(() => {
 .debug-row {
   padding: 2px 0;
   color: #666;
-}
-
-/* 校准控件 */
-.calibration-controls {
-  margin-top: 10px;
-  padding: 12px;
-  background: rgba(33, 150, 243, 0.1);
-  border-radius: 6px;
-  border: 1px solid rgba(33, 150, 243, 0.3);
-}
-
-.calibration-label {
-  font-size: 13px;
-  color: #1976d2;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.calibration-buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.calibration-btn {
-  padding: 6px 12px;
-  background: #2196f3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
-}
-
-.calibration-btn:hover {
-  background: #1976d2;
-  transform: scale(1.05);
-}
-
-.calibration-btn:active {
-  transform: scale(0.95);
-}
-
-.calibration-value {
-  min-width: 50px;
-  text-align: center;
-  font-weight: 700;
-  color: #1976d2;
-  font-size: 16px;
-}
-
-.reset-btn {
-  padding: 6px 12px;
-  background: #ff5722;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 12px;
-}
-
-.reset-btn:hover {
-  background: #e64a19;
-  transform: scale(1.05);
-}
-
-.reset-btn:active {
-  transform: scale(0.95);
 }
 </style>
