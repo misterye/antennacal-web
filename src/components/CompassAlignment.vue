@@ -153,7 +153,7 @@ const needsPermission = ref(false);
 const rawHeading = ref(0);
 const smoothedHeading = ref(0);
 const sensorType = ref('');
-const showDebug = ref(true); // 设为 true 可显示调试信息
+const showDebug = ref(false); // 设为 true 可显示调试信息
 
 // ========== 设备检测 ==========
 const userAgent = navigator.userAgent.toLowerCase();
