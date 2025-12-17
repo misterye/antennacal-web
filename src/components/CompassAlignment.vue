@@ -273,36 +273,25 @@ let orientationHandler = null;
 
 const handleOrientation = (event) => {
   let heading = null;
-  let needsCalibration = false;
   
-  // iOS 设备 - webkitCompassHeading已经是正确的罗盘方向
+  // iOS 设备 - webkitCompassHeading已经是正确的罗盘方向（0-360度，0度为正北）
   if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
     heading = event.webkitCompassHeading;
     sensorType.value = 'iOS Compass';
   }
-  // Android 绝对方向（优先）
+  // Android 绝对方向（优先）- 基于地球坐标系
+  // 根据W3C规范，当absolute为true时，alpha值应该是基于正北的绝对方向
   else if (event.absolute && event.alpha !== null) {
     heading = event.alpha;
-    needsCalibration = true;
     sensorType.value = 'Android Absolute' + (isXiaomi ? ' (Xiaomi)' : '');
   }
-  // Android 相对方向
+  // Android 相对方向 - 基于设备初始方向
   else if (event.alpha !== null) {
     heading = event.alpha;
-    needsCalibration = true;
     sensorType.value = 'Android Relative' + (isXiaomi ? ' (Xiaomi)' : '');
   }
   
   if (heading !== null) {
-    // Android设备需要校准：
-    // DeviceOrientation的alpha在Android上定义为：
-    // 设备顶部指向的方向与正北之间的角度差
-    // 需要反向计算：360 - alpha，才能得到正确的罗盘方向
-    if (needsCalibration && isAndroid) {
-      // 对于Android设备（包括小米），反转alpha值
-      heading = 360 - heading;
-    }
-    
     // 标准化到 0-360
     heading = heading % 360;
     if (heading < 0) heading += 360;
