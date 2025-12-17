@@ -51,6 +51,41 @@ if (heading !== null) {
 
 这样用户可以实时查看累积旋转值，确认指针是否持续旋转。
 
+**⚠️ 关键修复 - CSS Transform 双重负号问题**：
+
+在实际测试中发现，即使 `accumulatedRotation` 正确变为负数，指针仍然停在0度位置。
+
+**问题原因**：
+CSS transform 使用了错误的语法（第51行）：
+```vue
+:style="{ transform: `rotate(-${accumulatedRotation}deg)` }"
+```
+
+当 `accumulatedRotation = -30` 时，这个模板字符串会生成：
+```css
+rotate(--30deg)  /* 双重负号！ */
+```
+
+CSS 解析器会将 `--30deg` 解析为 **正数** `+30deg`，导致：
+- 逆时针旋转时（accumulated为负）指针反而顺时针旋转
+- 指针无法正确通过0度边界，停在N的位置
+
+**修复代码**（第51行）：
+```vue
+:style="{ transform: `rotate(${-accumulatedRotation}deg)` }"
+```
+
+改为在 JavaScript 表达式中计算负值（`${-accumulatedRotation}`），而不是在模板字符串中使用 `-${accumulatedRotation}`。
+
+现在当 `accumulatedRotation = -30` 时，正确生成：
+```css
+rotate(30deg)  /* 正确！ */
+```
+
+这样无论 `accumulatedRotation` 是正数还是负数，都能正确处理：
+- `accumulatedRotation = 90` → `rotate(-90deg)`
+- `accumulatedRotation = -30` → `rotate(30deg)`
+
 ---
 
 ### Bug 2: 接近目标时数值抖动，向左/向右提示不够友好
@@ -123,11 +158,13 @@ const isVisuallyAligned = computed(() => {
 
 ### 改进前：
 - ❌ 指针旋转到360度会卡住
+- ❌ 指针无法旋转到负数角度（双重负号bug）
 - ❌ 接近目标时状态频繁跳变，产生抖动
 - ❌ 只有精确对准才显示绿色，用户无法判断是否接近目标
 
 ### 改进后：
 - ✅ 指针可以连续旋转，不会在360度边界停止
+- ✅ 修复CSS transform双重负号问题，支持正负角度旋转
 - ✅ 使用5度的对准阈值，减少状态切换抖动
 - ✅ 提供8度的视觉反馈范围，当用户接近目标时提示变绿
 - ✅ 平滑的颜色过渡（橙色→绿色），提供更好的视觉反馈
@@ -136,12 +173,19 @@ const isVisuallyAligned = computed(() => {
 
 ## 测试建议
 
-1. **测试累积旋转**：
+1. **测试累积旋转（顺时针）**：
    - 启动罗盘
    - 顺时针连续旋转手机超过360度
+   - 观察 Accumulated 值：0° → 90° → 180° → 270° → 360° → 450° → ...
    - 确认指针持续旋转，不会在N处停止
 
-2. **测试对准提示**：
+2. **测试累积旋转（逆时针）**：
+   - 启动罗盘
+   - 逆时针连续旋转手机
+   - 观察 Accumulated 值：0° → -90° → -180° → -270° → -360° → ...
+   - 确认指针持续旋转，不会停在0度
+
+3. **测试对准提示**：
    - 将手机对准任意目标方位
    - 从远离目标开始慢慢转向目标
    - 观察：
@@ -149,7 +193,7 @@ const isVisuallyAligned = computed(() => {
      - 当偏差 <= 8度：提示变为绿色
      - 当偏差 <= 5度：显示"已对准！"
 
-3. **测试稳定性**：
+4. **测试稳定性**：
    - 在目标方位附近小幅度晃动手机
    - 确认数值不会频繁跳变（抖动减少）
 

@@ -48,7 +48,7 @@
         <!-- 使用负角度使指针与设备旋转方向一致 -->
         <div class="device-needle" 
           :class="{ 'aligned': isStableAligned }"
-          :style="{ transform: `rotate(-${accumulatedRotation}deg)` }">
+          :style="{ transform: `rotate(${-accumulatedRotation}deg)` }">
           <div class="needle-head"></div>
           <div class="needle-tail"></div>
         </div>
