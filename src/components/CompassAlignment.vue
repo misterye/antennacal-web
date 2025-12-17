@@ -86,7 +86,7 @@
         <div v-if="isStableAligned" class="aligned-indicator">
           ✓ {{ t.aligned }}
         </div>
-        <div v-else class="hint">
+        <div v-else class="hint" :class="{ 'hint-close': isVisuallyAligned }">
           <span v-if="angleDifference > 0">
             ← {{ t.turnLeft }}
           </span>
@@ -282,9 +282,14 @@ const angleDifference = computed(() => {
   return diff;
 });
 
-// 对准检测
+// 对准检测 - 使用更宽松的阈值减少抖动
 const isAligned = computed(() => {
-  return Math.abs(angleDifference.value) <= 3;
+  return Math.abs(angleDifference.value) <= 5;
+});
+
+// 视觉提示的对准检测 - 使用更宽的范围
+const isVisuallyAligned = computed(() => {
+  return Math.abs(angleDifference.value) <= 8;
 });
 
 // 稳定对准状态
@@ -344,10 +349,8 @@ const handleOrientation = (event) => {
   }
   
   if (heading !== null) {
-    // 标准化到 0-360
-    heading = heading % 360;
-    if (heading < 0) heading += 360;
-    
+    // 不标准化heading，保持原始值以支持累积旋转
+    // 只在rawHeading中保留原始范围
     rawHeading.value = heading;
     smoothedHeading.value = smoothHeading(heading);
     
@@ -758,6 +761,13 @@ onUnmounted(() => {
   border-radius: 6px;
   text-align: center;
   font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.hint.hint-close {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  font-weight: 700;
 }
 
 .debug-info {
