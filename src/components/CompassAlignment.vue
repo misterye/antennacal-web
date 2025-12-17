@@ -19,6 +19,28 @@
     </div>
 
     <div v-else class="compass-display">
+      <!-- 校准控制面板 -->
+      <div class="calibration-panel">
+        <div class="calibration-title">{{ t.calibration }}</div>
+        <div class="calibration-controls">
+          <button @click="adjustOffset(-1)" class="offset-button">-1°</button>
+          <button @click="adjustOffset(-5)" class="offset-button">-5°</button>
+          <div class="offset-display">
+            <span class="offset-label">{{ t.offset }}:</span>
+            <span class="offset-value">{{ manualOffset > 0 ? '+' : '' }}{{ Math.round(manualOffset) }}°</span>
+          </div>
+          <button @click="adjustOffset(5)" class="offset-button">+5°</button>
+          <button @click="adjustOffset(1)" class="offset-button">+1°</button>
+        </div>
+        <div class="calibration-actions">
+          <button @click="resetCalibration" class="reset-button">{{ t.reset }}</button>
+          <label class="declination-toggle">
+            <input type="checkbox" v-model="useMagneticDeclination">
+            <span>{{ t.magneticDeclination }}</span>
+          </label>
+        </div>
+      </div>
+
       <div class="compass-wrapper">
         <!-- 固定的罗盘圆盘（N始终在上方） -->
         <div class="compass-circle">
@@ -60,7 +82,7 @@
       <div class="info-panel">
         <div class="info-row">
           <span class="info-label">{{ t.currentHeading }}:</span>
-          <span class="info-value">{{ Math.round(smoothedHeading) }}°</span>
+          <span class="info-value">{{ Math.round(calibratedHeading) }}°</span>
         </div>
         <div class="info-row">
           <span class="info-label">{{ t.targetAzimuth }}:</span>
@@ -73,11 +95,15 @@
           </span>
         </div>
         
-        <!-- 调试信息（仅开发时显示） -->
+        <!-- 调试信息（可通过双击标题显示） -->
         <div v-if="showDebug" class="debug-info">
           <div class="debug-row">Raw: {{ Math.round(rawHeading) }}°</div>
+          <div class="debug-row">Smoothed: {{ Math.round(smoothedHeading) }}°</div>
+          <div class="debug-row">Offset: {{ Math.round(manualOffset) }}°</div>
+          <div class="debug-row">Declination: {{ magneticDeclinationValue.toFixed(2) }}°</div>
           <div class="debug-row">Sensor: {{ sensorType }}</div>
-          <div class="debug-row">Device: {{ isAndroid ? 'Android' : 'iOS' }}{{ isXiaomi ? ' (Xiaomi)' : '' }}</div>
+          <div class="debug-row">Device: {{ deviceInfo }}</div>
+          <div class="debug-row">Screen: {{ screenOrientation }}°</div>
         </div>
         
         <div v-if="isStableAligned" class="aligned-indicator">
@@ -97,7 +123,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
   targetAzimuth: {
@@ -123,7 +149,11 @@ const translations = {
     difference: '偏差',
     aligned: '已对准！',
     turnLeft: '向左转',
-    turnRight: '向右转'
+    turnRight: '向右转',
+    calibration: '罗盘校准',
+    offset: '偏移',
+    reset: '重置',
+    magneticDeclination: '磁偏角补偿'
   },
   en: {
     title: 'Real-time Compass',
@@ -136,7 +166,11 @@ const translations = {
     difference: 'Offset',
     aligned: 'Aligned!',
     turnLeft: 'Turn Left',
-    turnRight: 'Turn Right'
+    turnRight: 'Turn Right',
+    calibration: 'Calibration',
+    offset: 'Offset',
+    reset: 'Reset',
+    magneticDeclination: 'Magnetic Declination'
   }
 };
 
@@ -151,35 +185,171 @@ const smoothedHeading = ref(0);
 const sensorType = ref('');
 const showDebug = ref(false); // 设为 true 可显示调试信息
 
-// 设备检测
-const isAndroid = /android/i.test(navigator.userAgent);
-const isXiaomi = /xiaomi|mi\s|redmi/i.test(navigator.userAgent);
+// ========== 校准相关 ==========
+const CALIBRATION_KEY = 'compass-manual-offset';
+const DECLINATION_KEY = 'compass-use-declination';
+
+// 手动偏移量（从localStorage加载）
+const manualOffset = ref(parseFloat(localStorage.getItem(CALIBRATION_KEY) || '0'));
+
+// 是否使用磁偏角补偿
+const useMagneticDeclination = ref(localStorage.getItem(DECLINATION_KEY) === 'true');
+
+// 用户地理位置
+const userLatitude = ref(null);
+const userLongitude = ref(null);
+
+// 磁偏角值（东偏为正，西偏为负）
+const magneticDeclinationValue = ref(0);
+
+// 调整偏移量
+const adjustOffset = (delta) => {
+  manualOffset.value += delta;
+  // 标准化到 -180 到 180 范围
+  while (manualOffset.value > 180) manualOffset.value -= 360;
+  while (manualOffset.value < -180) manualOffset.value += 360;
+  
+  // 保存到localStorage
+  localStorage.setItem(CALIBRATION_KEY, manualOffset.value.toString());
+};
+
+// 重置校准
+const resetCalibration = () => {
+  manualOffset.value = 0;
+  localStorage.setItem(CALIBRATION_KEY, '0');
+};
+
+// 监听磁偏角开关变化，保存到localStorage
+watch(useMagneticDeclination, (newValue) => {
+  localStorage.setItem(DECLINATION_KEY, newValue.toString());
+  if (newValue && !userLatitude.value) {
+    // 如果启用磁偏角但还没有位置信息，尝试获取
+    getUserLocation();
+  }
+});
+
+// 获取用户位置
+const getUserLocation = () => {
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        userLatitude.value = position.coords.latitude;
+        userLongitude.value = position.coords.longitude;
+        // 计算磁偏角
+        magneticDeclinationValue.value = getMagneticDeclination(
+          userLatitude.value,
+          userLongitude.value
+        );
+      },
+      (error) => {
+        console.warn('无法获取位置信息:', error.message);
+      }
+    );
+  }
+};
+
+// 简化的磁偏角计算（基于世界磁场模型WMM的近似）
+// 实际应用中应该使用更精确的WMM库或API
+const getMagneticDeclination = (lat, lon) => {
+  // 这是一个简化模型，仅供演示
+  // 对于中国地区，磁偏角大约在 -10° 到 +5° 之间
+  // 更精确的值需要使用 WMM (World Magnetic Model)
+  
+  // 中国区域的简化计算
+  if (lat >= 18 && lat <= 54 && lon >= 73 && lon <= 135) {
+    // 东部地区倾向于西偏（负值），西部地区倾向于东偏（正值）
+    const declinationApprox = (lon - 120) * 0.15 + (lat - 35) * 0.05;
+    return declinationApprox;
+  }
+  
+  // 其他地区返回0（需要实际数据）
+  return 0;
+};
+
+// 计算校准后的朝向
+const calibratedHeading = computed(() => {
+  let heading = smoothedHeading.value;
+  
+  // 应用手动偏移
+  heading += manualOffset.value;
+  
+  // 应用磁偏角补偿
+  if (useMagneticDeclination.value && magneticDeclinationValue.value !== 0) {
+    heading -= magneticDeclinationValue.value; // 磁北 -> 真北
+  }
+  
+  // 标准化到 0-360
+  heading = heading % 360;
+  if (heading < 0) heading += 360;
+  
+  return heading;
+});
+
+// ========== 设备检测（增强版） ==========
+const userAgent = navigator.userAgent.toLowerCase();
+const isAndroid = /android/i.test(userAgent);
+const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+
+// Android厂商检测
+const isXiaomi = /xiaomi|mi\s|redmi/i.test(userAgent);
+const isHuawei = /huawei|honor/i.test(userAgent);
+const isOppo = /oppo/i.test(userAgent);
+const isVivo = /vivo/i.test(userAgent);
+const isSamsung = /samsung/i.test(userAgent);
+
+// 设备信息字符串
+const deviceInfo = computed(() => {
+  let info = [];
+  if (isIOS) info.push('iOS');
+  if (isAndroid) info.push('Android');
+  if (isXiaomi) info.push('Xiaomi');
+  if (isHuawei) info.push('Huawei');
+  if (isOppo) info.push('Oppo');
+  if (isVivo) info.push('Vivo');
+  if (isSamsung) info.push('Samsung');
+  return info.join(' ') || 'Unknown';
+});
+
+// 屏幕方向
+const screenOrientation = ref(0);
+
+// 获取屏幕方向角度
+const getScreenOrientation = () => {
+  if (window.screen && window.screen.orientation) {
+    const angle = window.screen.orientation.angle || 0;
+    screenOrientation.value = angle;
+    return angle;
+  } else if (window.orientation !== undefined) {
+    screenOrientation.value = window.orientation;
+    return window.orientation;
+  }
+  return 0;
+};
 
 // 累积旋转角度（解决360度边界反向问题）
-const accumulatedRotation = ref(0); // 累积的旋转角度，可以超过360度
-const lastHeading = ref(null); // 上一次的heading值
+const accumulatedRotation = ref(0);
+const lastHeading = ref(null);
 
-// 平滑处理 - 增加平滑窗口以减少抖动
+// 平滑处理
 const headingHistory = ref([]);
-const SMOOTHING_WINDOW = 8; // 从3增加到8，提供更好的平滑效果
+const SMOOTHING_WINDOW = 8;
 
 // 稳定性检测
 const alignedHistory = ref([]);
 const STABILITY_CHECKS = 5;
 
-// 低通滤波阈值 - 忽略小于此值的变化
-const SMOOTHING_THRESHOLD = 0.5; // 度数
+// 低通滤波阈值
+const SMOOTHING_THRESHOLD = 0.5;
 
-// 平滑处理函数 - 使用加权圆形平均
+// 平滑处理函数
 const smoothHeading = (newHeading) => {
-  // 如果变化非常小，直接返回当前值（减少微小抖动）
   if (headingHistory.value.length > 0) {
     const lastHeading = headingHistory.value[headingHistory.value.length - 1];
     let diff = Math.abs(newHeading - lastHeading);
-    if (diff > 180) diff = 360 - diff; // 处理360°/0°边界
+    if (diff > 180) diff = 360 - diff;
     
     if (diff < SMOOTHING_THRESHOLD) {
-      return smoothedHeading.value; // 保持当前值
+      return smoothedHeading.value;
     }
   }
   
@@ -193,13 +363,11 @@ const smoothHeading = (newHeading) => {
     return newHeading;
   }
   
-  // 使用加权圆形平均（越新的值权重越大）
   let sinSum = 0;
   let cosSum = 0;
   let weightSum = 0;
   
   headingHistory.value.forEach((angle, index) => {
-    // 线性权重：最新的值权重最大
     const weight = (index + 1) / headingHistory.value.length;
     const rad = angle * Math.PI / 180;
     sinSum += Math.sin(rad) * weight;
@@ -215,41 +383,37 @@ const smoothHeading = (newHeading) => {
   return avgAngle;
 };
 
-// 更新累积旋转角度（解决360度边界反向旋转问题）
+// 更新累积旋转角度
 const updateAccumulatedRotation = (newHeading) => {
   if (lastHeading.value === null) {
-    // 首次设置
     lastHeading.value = newHeading;
     accumulatedRotation.value = newHeading;
     return accumulatedRotation.value;
   }
   
-  // 计算角度差异
   let delta = newHeading - lastHeading.value;
   
-  // 处理360度边界：选择最短路径
   if (delta > 180) {
-    delta = delta - 360; // 实际是逆时针旋转
+    delta = delta - 360;
   } else if (delta < -180) {
-    delta = delta + 360; // 实际是顺时针旋转
+    delta = delta + 360;
   }
   
-  // 累积旋转角度（不限制在0-360范围内）
   accumulatedRotation.value += delta;
   lastHeading.value = newHeading;
   
   return accumulatedRotation.value;
 };
 
-// 计算角度差
+// 计算角度差（使用校准后的朝向）
 const angleDifference = computed(() => {
-  let diff = props.targetAzimuth - smoothedHeading.value;
+  let diff = props.targetAzimuth - calibratedHeading.value;
   while (diff > 180) diff -= 360;
   while (diff < -180) diff += 360;
   return diff;
 });
 
-// 当前是否对准（目标角度±3度范围内）
+// 对准检测
 const isAligned = computed(() => {
   return Math.abs(angleDifference.value) <= 3;
 });
@@ -271,33 +435,46 @@ const isStableAligned = computed(() => {
 
 let orientationHandler = null;
 
+// 处理设备方向事件（改进版）
 const handleOrientation = (event) => {
   let heading = null;
   
-  // iOS 设备 - webkitCompassHeading已经是正确的罗盘方向（0-360度，0度为正北）
+  // iOS 设备
   if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
     heading = event.webkitCompassHeading;
     sensorType.value = 'iOS Compass';
+    
+    // iOS需要考虑屏幕方向
+    const screenAngle = getScreenOrientation();
+    // iOS的webkitCompassHeading已经考虑了屏幕方向，通常不需要额外调整
   }
   // Android 绝对方向（优先）
   else if (event.absolute && event.alpha !== null) {
     heading = event.alpha;
-    sensorType.value = 'Android Absolute' + (isXiaomi ? ' (Xiaomi)' : '');
+    sensorType.value = 'Android Absolute';
     
-    // 只对小米设备反转
-    // 小米部分型号的alpha值定义与标准相反
+    // Android的alpha是设备顶部相对于正北的角度
+    // 需要根据具体厂商进行调整
     if (isXiaomi) {
+      // 小米部分型号需要反转
       heading = 360 - heading;
+      sensorType.value += ' (Xiaomi)';
+    } else if (isHuawei) {
+      // 华为设备通常符合标准
+      sensorType.value += ' (Huawei)';
+    } else if (isOppo || isVivo) {
+      // Oppo/Vivo某些型号可能需要调整
+      sensorType.value += ' (Oppo/Vivo)';
     }
   }
   // Android 相对方向
   else if (event.alpha !== null) {
     heading = event.alpha;
-    sensorType.value = 'Android Relative' + (isXiaomi ? ' (Xiaomi)' : '');
+    sensorType.value = 'Android Relative';
     
-    // 相对方向下，小米也需要反转
     if (isXiaomi) {
       heading = 360 - heading;
+      sensorType.value += ' (Xiaomi)';
     }
   }
   
@@ -309,11 +486,12 @@ const handleOrientation = (event) => {
     rawHeading.value = heading;
     smoothedHeading.value = smoothHeading(heading);
     
-    // 更新累积旋转角度（用于CSS动画，避免360度边界反向）
-    updateAccumulatedRotation(smoothedHeading.value);
+    // 更新累积旋转（使用校准后的值）
+    updateAccumulatedRotation(calibratedHeading.value);
   }
 };
 
+// 请求权限（iOS 13+需要）
 const requestPermission = async () => {
   if (typeof DeviceOrientationEvent !== 'undefined' && 
       typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -331,6 +509,7 @@ const requestPermission = async () => {
   return true;
 };
 
+// 启动罗盘
 const startCompass = async () => {
   if (typeof DeviceOrientationEvent === 'undefined') {
     isSupported.value = false;
@@ -349,6 +528,9 @@ const startCompass = async () => {
   smoothedHeading.value = 0;
   accumulatedRotation.value = 0;
   lastHeading.value = null;
+  
+  // 更新屏幕方向
+  getScreenOrientation();
 
   orientationHandler = handleOrientation;
   
@@ -356,15 +538,28 @@ const startCompass = async () => {
   window.addEventListener('deviceorientationabsolute', orientationHandler, true);
   window.addEventListener('deviceorientation', orientationHandler, true);
   
+  // 监听屏幕方向变化
+  if (window.screen && window.screen.orientation) {
+    window.screen.orientation.addEventListener('change', getScreenOrientation);
+  }
+  window.addEventListener('orientationchange', getScreenOrientation);
+  
   isActive.value = true;
 };
 
+// 停止罗盘
 const stopCompass = () => {
   if (orientationHandler) {
     window.removeEventListener('deviceorientationabsolute', orientationHandler, true);
     window.removeEventListener('deviceorientation', orientationHandler, true);
     orientationHandler = null;
   }
+  
+  if (window.screen && window.screen.orientation) {
+    window.screen.orientation.removeEventListener('change', getScreenOrientation);
+  }
+  window.removeEventListener('orientationchange', getScreenOrientation);
+  
   isActive.value = false;
   headingHistory.value = [];
   alignedHistory.value = [];
@@ -374,6 +569,14 @@ onMounted(() => {
   if (typeof DeviceOrientationEvent === 'undefined') {
     isSupported.value = false;
   }
+  
+  // 尝试获取位置信息（用于磁偏角计算）
+  if (useMagneticDeclination.value) {
+    getUserLocation();
+  }
+  
+  // 获取屏幕方向
+  getScreenOrientation();
 });
 
 onUnmounted(() => {
@@ -448,6 +651,118 @@ onUnmounted(() => {
   gap: 20px;
 }
 
+/* ========== 校准面板样式 ========== */
+.calibration-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  padding: 15px 20px;
+  width: 300px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.calibration-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.calibration-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.offset-button {
+  padding: 6px 12px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 45px;
+}
+
+.offset-button:hover {
+  background: #5568d3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+.offset-button:active {
+  transform: translateY(0);
+}
+
+.offset-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.offset-label {
+  font-size: 11px;
+  color: #999;
+}
+
+.offset-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.calibration-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.reset-button {
+  padding: 6px 12px;
+  background: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background: #f57c00;
+  transform: scale(1.05);
+}
+
+.declination-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #666;
+}
+
+.declination-toggle input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.declination-toggle span {
+  user-select: none;
+}
+
+/* ========== 罗盘样式 ========== */
 .compass-wrapper {
   position: relative;
   width: 300px;
@@ -538,7 +853,6 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   transform-origin: center;
-  /* 与设备指针使用相同的平滑过渡效果 */
   transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
@@ -576,10 +890,9 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   transform-origin: center;
-  /* 优化过渡效果：更长的持续时间和平滑的缓动函数 */
   transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   pointer-events: none;
-  will-change: transform; /* 提示浏览器优化动画性能 */
+  will-change: transform;
 }
 
 .device-needle.aligned .needle-head {
