@@ -150,16 +150,30 @@ const smoothedHeading = ref(0);
 const sensorType = ref('');
 const showDebug = ref(false); // 设为 true 可显示调试信息
 
-// 平滑处理
+// 平滑处理 - 增加平滑窗口以减少抖动
 const headingHistory = ref([]);
-const SMOOTHING_WINDOW = 3;
+const SMOOTHING_WINDOW = 8; // 从3增加到8，提供更好的平滑效果
 
 // 稳定性检测
 const alignedHistory = ref([]);
 const STABILITY_CHECKS = 5;
 
-// 平滑处理函数
+// 低通滤波阈值 - 忽略小于此值的变化
+const SMOOTHING_THRESHOLD = 0.5; // 度数
+
+// 平滑处理函数 - 使用加权圆形平均
 const smoothHeading = (newHeading) => {
+  // 如果变化非常小，直接返回当前值（减少微小抖动）
+  if (headingHistory.value.length > 0) {
+    const lastHeading = headingHistory.value[headingHistory.value.length - 1];
+    let diff = Math.abs(newHeading - lastHeading);
+    if (diff > 180) diff = 360 - diff; // 处理360°/0°边界
+    
+    if (diff < SMOOTHING_THRESHOLD) {
+      return smoothedHeading.value; // 保持当前值
+    }
+  }
+  
   headingHistory.value.push(newHeading);
   
   if (headingHistory.value.length > SMOOTHING_WINDOW) {
@@ -170,17 +184,21 @@ const smoothHeading = (newHeading) => {
     return newHeading;
   }
   
-  // 使用圆形平均
+  // 使用加权圆形平均（越新的值权重越大）
   let sinSum = 0;
   let cosSum = 0;
+  let weightSum = 0;
   
-  headingHistory.value.forEach(angle => {
+  headingHistory.value.forEach((angle, index) => {
+    // 线性权重：最新的值权重最大
+    const weight = (index + 1) / headingHistory.value.length;
     const rad = angle * Math.PI / 180;
-    sinSum += Math.sin(rad);
-    cosSum += Math.cos(rad);
+    sinSum += Math.sin(rad) * weight;
+    cosSum += Math.cos(rad) * weight;
+    weightSum += weight;
   });
   
-  const avgRad = Math.atan2(sinSum / headingHistory.value.length, cosSum / headingHistory.value.length);
+  const avgRad = Math.atan2(sinSum / weightSum, cosSum / weightSum);
   let avgAngle = avgRad * 180 / Math.PI;
   
   if (avgAngle < 0) avgAngle += 360;
@@ -470,7 +488,8 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   transform-origin: center;
-  transition: transform 0.3s ease;
+  /* 与设备指针使用相同的平滑过渡效果 */
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .target-wedge {
@@ -507,8 +526,10 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   transform-origin: center;
-  transition: transform 0.2s ease-out;
+  /* 优化过渡效果：更长的持续时间和平滑的缓动函数 */
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   pointer-events: none;
+  will-change: transform; /* 提示浏览器优化动画性能 */
 }
 
 .device-needle.aligned .needle-head {
