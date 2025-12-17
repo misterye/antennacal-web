@@ -284,11 +284,22 @@ const handleOrientation = (event) => {
   else if (event.absolute && event.alpha !== null) {
     heading = event.alpha;
     sensorType.value = 'Android Absolute' + (isXiaomi ? ' (Xiaomi)' : '');
+    
+    // 小米设备特殊处理：需要反转方向
+    // 原因：小米部分设备的alpha值定义与W3C标准相反
+    if (isXiaomi) {
+      heading = 360 - heading;
+    }
   }
   // Android 相对方向 - 基于设备初始方向
   else if (event.alpha !== null) {
     heading = event.alpha;
     sensorType.value = 'Android Relative' + (isXiaomi ? ' (Xiaomi)' : '');
+    
+    // 相对方向模式下，小米设备也需要反转
+    if (isXiaomi) {
+      heading = 360 - heading;
+    }
   }
   
   if (heading !== null) {
