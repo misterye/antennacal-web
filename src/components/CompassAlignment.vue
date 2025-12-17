@@ -237,9 +237,9 @@ const angleDifference = computed(() => {
   return diff;
 });
 
-// 当前是否对准
+// 当前是否对准（目标角度±3度范围内）
 const isAligned = computed(() => {
-  return Math.abs(angleDifference.value) <= 5;
+  return Math.abs(angleDifference.value) <= 3;
 });
 
 // 稳定对准状态
