@@ -1,15 +1,14 @@
 export const satelliteData = {
-  "Apstar-5C（Telstar 18 Vantage）": "138.0E",
-  "EutelSat-172B": "172.0E",
-  "Apstar-6D-Beam8": "134.5E",
-  "Apstar-6D-Beam2": "134.1E",
-  "Apstar-6C": "134.0E",
-  "Apstar-9": "142.0E",
-  "Apstar-7": "76.5E",
-  "AsiaSat-9": "122.0E",
-  "AsiaSat-7": "105.5E",
-  "ChinaSat-16（圆极化）": "110.5E",
-  "ChinaSat-26（圆极化）": "125.0E"
+    "Apstar-5C（Telstar 18 Vantage）": "138.0E",
+    "EutelSat-172B": "172.0E",
+    "Apstar-6D": "134.5E",
+    "Apstar-6C": "134.0E",
+    "Apstar-9": "142.0E",
+    "Apstar-7": "76.5E",
+    "AsiaSat-9": "122.0E",
+    "AsiaSat-7": "105.5E",
+    "ChinaSat-16（圆极化）": "110.5E",
+    "ChinaSat-26（圆极化）": "125.0E"
 };
 
 export function calculateParameters(selectedSatellite, earthStationLatitude, earthStationLongitude) {

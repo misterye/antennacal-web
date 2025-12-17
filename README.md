@@ -191,8 +191,7 @@ antennacal-web/
 |---------|---------|
 | Apstar-5C (Telstar 18 Vantage) | 138.0°E |
 | EutelSat-172B | 172.0°E |
-| Apstar-6D-Beam8 | 134.5°E |
-| Apstar-6D-Beam2 | 134.1°E |
+| Apstar-6D | 134.5°E |
 | Apstar-6C | 134.0°E |
 | Apstar-9 | 142.0°E |
 | Apstar-7 | 76.5°E |
