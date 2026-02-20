@@ -23,6 +23,17 @@ export const translations = {
         // 地图
         mapTitle: '位置及天线方位',
 
+        // 卫星信息
+        orbit: '轨道类型：',
+        status: '卫星状态：',
+        operator: '运营商：',
+        platform: '卫星平台：',
+        vehicle: '运载火箭：',
+        mass: '卫星质量：',
+        launchDate: '发射日期：',
+        lifetime: '设计寿命：',
+        comments: '备注说明：',
+
         // 提示信息
         locationSuccess: '位置获取成功！',
         locationError: '获取位置失败，请手动输入',
@@ -34,7 +45,11 @@ export const translations = {
         switchToDark: '切换到暗主题',
 
         // 语言切换
-        switchLanguage: '切换语言'
+        switchLanguage: '切换语言',
+
+        // 搜索框
+        searchPlaceholder: '搜索卫星…',
+        noResults: '无匹配卫星'
     },
 
     en: {
@@ -60,6 +75,17 @@ export const translations = {
         // Map
         mapTitle: 'Location & Antenna Direction',
 
+        // Satellite info
+        orbit: 'Orbit:',
+        status: 'Status:',
+        operator: 'Operator:',
+        platform: 'Platform:',
+        vehicle: 'Launch Vehicle:',
+        mass: 'Mass:',
+        launchDate: 'Launch Date:',
+        lifetime: 'Design Life:',
+        comments: 'Comments:',
+
         // Messages
         locationSuccess: 'Location acquired successfully!',
         locationError: 'Failed to get location, please enter manually',
@@ -71,6 +97,10 @@ export const translations = {
         switchToDark: 'Switch to Dark Theme',
 
         // Language toggle
-        switchLanguage: 'Switch Language'
+        switchLanguage: 'Switch Language',
+
+        // Search
+        searchPlaceholder: 'Search satellite…',
+        noResults: 'No matching satellites'
     }
 };
