@@ -2,7 +2,7 @@
 export const translations = {
     zh: {
         // 标题
-        title: '卫星天线参数计算器',
+        title: '寻星参数计算器',
 
         // 输入部分
         satelliteSelect: '卫星选择',
@@ -54,7 +54,7 @@ export const translations = {
 
     en: {
         // Titles
-        title: 'Satellite Antenna Calculator',
+        title: 'Satellite Finder Calculator',
 
         // Input section
         satelliteSelect: 'Select Satellite',

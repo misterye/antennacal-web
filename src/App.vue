@@ -378,24 +378,27 @@ const handleCalculate = () => {
 }
 
 .header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 20px;
   position: relative;
+  gap: 10px;
 }
 
 .title {
   font-size: 20px;
   font-weight: bold;
+  margin: 0;
+  text-align: left;
+  flex: 1;
 }
 
 /* 头部按钮容器 */
 .header-buttons {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 /* 语言切换按钮 */
