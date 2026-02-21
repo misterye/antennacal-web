@@ -134,12 +134,36 @@
           {{ currentSatInfo.status }} · {{ currentSatInfo.orbit || 'GEO' }}
         </div>
         <div class="info-chips">
-          <div class="info-chip" v-if="currentSatInfo.vehicle"><span class="info-chip-icon">🚀</span>{{ currentSatInfo.vehicle }}</div>
-          <div class="info-chip" v-if="currentSatInfo.platform"><span class="info-chip-icon">📡</span>{{ currentSatInfo.platform }}</div>
-          <div class="info-chip" v-if="currentSatInfo.mass"><span class="info-chip-icon">⚖️</span>{{ currentSatInfo.mass }} kg</div>
-          <div class="info-chip" v-if="currentSatInfo.launchDate"><span class="info-chip-icon">📅</span>{{ currentSatInfo.launchDate }}</div>
-          <div class="info-chip" v-if="currentSatInfo.lifetime"><span class="info-chip-icon">⏱️</span>{{ currentSatInfo.lifetime }}</div>
-          <div class="info-chip" v-if="currentSatInfo.operator"><span class="info-chip-icon">🏢</span>{{ currentSatInfo.operator }}</div>
+          <div class="info-chip" v-if="currentSatInfo.vehicle">
+            <span class="info-chip-icon">🚀</span>
+            <span class="info-chip-label">{{ t.vehicle }}</span>
+            <span class="info-chip-value">{{ currentSatInfo.vehicle }}</span>
+          </div>
+          <div class="info-chip" v-if="currentSatInfo.platform">
+            <span class="info-chip-icon">📡</span>
+            <span class="info-chip-label">{{ t.platform }}</span>
+            <span class="info-chip-value">{{ currentSatInfo.platform }}</span>
+          </div>
+          <div class="info-chip" v-if="currentSatInfo.mass">
+            <span class="info-chip-icon">⚖️</span>
+            <span class="info-chip-label">{{ t.mass }}</span>
+            <span class="info-chip-value">{{ currentSatInfo.mass }} kg</span>
+          </div>
+          <div class="info-chip" v-if="currentSatInfo.launchDate">
+            <span class="info-chip-icon">📅</span>
+            <span class="info-chip-label">{{ t.launchDate }}</span>
+            <span class="info-chip-value">{{ currentSatInfo.launchDate }}</span>
+          </div>
+          <div class="info-chip" v-if="currentSatInfo.lifetime">
+            <span class="info-chip-icon">⏱️</span>
+            <span class="info-chip-label">{{ t.lifetime }}</span>
+            <span class="info-chip-value">{{ currentSatInfo.lifetime }}</span>
+          </div>
+          <div class="info-chip" v-if="currentSatInfo.operator">
+            <span class="info-chip-icon">🏢</span>
+            <span class="info-chip-label">{{ t.operator }}</span>
+            <span class="info-chip-value">{{ currentSatInfo.operator }}</span>
+          </div>
         </div>
         <div class="info-note" v-if="currentSatInfo.comments">
           <span>💡</span>
@@ -641,14 +665,16 @@ const handleCalculate = (e) => {
    ============================================= */
 .info-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .info-chip {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 4px;
   background: var(--bg-surface-2); border: 1px solid var(--border);
-  border-radius: 6px; padding: 5px 10px;
+  border-radius: 6px; padding: 6px 10px;
   font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);
   transition: all 0.2s;
 }
-.info-chip:hover { border-color: var(--border-hover); color: var(--text-primary); }
-.info-chip-icon { opacity: 0.7; font-size: 12px; }
+.info-chip:hover { border-color: var(--border-hover); background: var(--bg-surface); }
+.info-chip-icon { opacity: 0.8; font-size: 12px; margin-right: 2px; }
+.info-chip-label { font-size: 10px; opacity: 0.75; letter-spacing: 0.05em; }
+.info-chip-value { font-weight: 500; color: var(--text-primary); }
 
 .status-badge {
   display: inline-flex; align-items: center; gap: 5px;

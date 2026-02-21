@@ -153,15 +153,52 @@ const rawHeading = ref(0);
 const smoothedHeading = ref(0);
 const sensorType = ref('');
 
+// ========== 传感器数据平滑管线 ==========
+// 第一层：EMA 低通滤波器（指数移动平均），在原始传感器数据上过滤高频噪声
+// 第二层：累积旋转（避免 360°/0° 边界跳跃）
+// 第三层：requestAnimationFrame 渲染插值（使动画丝滑）
+
+// EMA 滤波后的航向（0-360）
+const filteredHeading = ref(null);
+// EMA 平滑系数，越小越平滑（0.05 = 极强滤波，适用于传感器噪声大的安卓设备）
+const EMA_ALPHA = 0.05;
+// 微小变化死区阈值，单位度。小于此阈值的变化完全忽略，可消除静止时的微抖
+const DEAD_ZONE = 1.5;
+
+// 对角度做 EMA 滤波（在sin/cos空间进行以正确处理 0°/360° 边界）
+const emaFilterHeading = (newHeading) => {
+  if (filteredHeading.value === null) {
+    filteredHeading.value = newHeading;
+    return newHeading;
+  }
+  
+  const prevRad = filteredHeading.value * Math.PI / 180;
+  const newRad = newHeading * Math.PI / 180;
+  
+  const sinVal = Math.sin(prevRad) * (1 - EMA_ALPHA) + Math.sin(newRad) * EMA_ALPHA;
+  const cosVal = Math.cos(prevRad) * (1 - EMA_ALPHA) + Math.cos(newRad) * EMA_ALPHA;
+  
+  let result = Math.atan2(sinVal, cosVal) * 180 / Math.PI;
+  if (result < 0) result += 360;
+  
+  // 死区：如果滤波后的变化小于阈值，忽略此次更新
+  let diff = Math.abs(result - filteredHeading.value);
+  if (diff > 180) diff = 360 - diff;
+  if (diff < DEAD_ZONE) return filteredHeading.value;
+  
+  filteredHeading.value = result;
+  return result;
+};
+
 // 渲染旋转角度（用于平滑动画）
 const renderRotation = ref(0);
 let animationFrameId = null;
 
 const animateCompass = () => {
   const diff = accumulatedRotation.value - renderRotation.value;
-  if (Math.abs(diff) > 0.05) {
-    // 使用 0.08 的平滑系数，数值越小越平滑但会有略微延迟，0.08 是很好的响应性平衡点
-    renderRotation.value += diff * 0.08;
+  if (Math.abs(diff) > 0.01) {
+    // 使用 0.06 的平滑系数，数值越小越平滑但会有略微延迟
+    renderRotation.value += diff * 0.06;
   } else {
     renderRotation.value = accumulatedRotation.value;
   }
@@ -226,24 +263,16 @@ const getScreenOrientation = () => {
 const accumulatedRotation = ref(0);
 const lastHeading = ref(null);
 
-// 平滑处理
+// 平滑处理（用于文本显示的度数）
 const headingHistory = ref([]);
-const SMOOTHING_WINDOW = 20;
-const SMOOTHING_THRESHOLD = 0.5;
+const SMOOTHING_WINDOW = 30;
 
 // 稳定对准检测
 const alignedHistory = ref([]);
 const STABILITY_CHECKS = 5;
 
-// 平滑处理函数
+// 平滑处理函数（用于文本，与指针动画独立）
 const smoothHeading = (newHeading) => {
-  if (headingHistory.value.length > 0) {
-    const lastHeading = headingHistory.value[headingHistory.value.length - 1];
-    let diff = Math.abs(newHeading - lastHeading);
-    if (diff > 180) diff = 360 - diff;
-    if (diff < SMOOTHING_THRESHOLD) return smoothedHeading.value;
-  }
-  
   headingHistory.value.push(newHeading);
   if (headingHistory.value.length > SMOOTHING_WINDOW) headingHistory.value.shift();
   if (headingHistory.value.length < 2) return newHeading;
@@ -271,7 +300,7 @@ const updateAccumulatedRotation = (newHeading) => {
   if (lastHeading.value === null) {
     lastHeading.value = newHeading;
     accumulatedRotation.value = newHeading;
-    renderRotation.value = newHeading; // Initialize instantly
+    renderRotation.value = newHeading;
     return accumulatedRotation.value;
   }
   
@@ -295,17 +324,47 @@ const angleDifference = computed(() => {
 // 对准检测
 const isAligned = computed(() => Math.abs(angleDifference.value) <= 5);
 
+// ========== 传感器事件管理 ==========
+// 关键修复：只使用一个事件源，避免两个事件交替触发导致指针跳动
 let orientationHandler = null;
+let absoluteHandler = null;
+let hasAbsoluteData = false; // 标记是否已收到 absolute 数据
 
-const handleOrientation = (event) => {
+// 处理方向事件（通用）
+const processHeading = (heading) => {
+  heading = heading % 360;
+  if (heading < 0) heading += 360;
+  
+  // 第一层：EMA 低通滤波
+  const filtered = emaFilterHeading(heading);
+  
+  // 第二层：更新累积旋转（给指针动画用）
+  updateAccumulatedRotation(filtered);
+  
+  rawHeading.value = heading;
+  // 第三层：文本显示用的移动平均
+  smoothedHeading.value = smoothHeading(filtered);
+};
+
+// 处理 deviceorientationabsolute 事件（优先）
+const handleAbsoluteOrientation = (event) => {
+  if (event.alpha === null) return;
+  hasAbsoluteData = true;
+  sensorType.value = 'Android Absolute';
+  let heading = event.alpha;
+  if (isXiaomi) heading = 360 - heading;
+  processHeading(heading);
+};
+
+// 处理 deviceorientation 事件（fallback）
+const handleRelativeOrientation = (event) => {
+  // 如果已经有 absolute 数据，忽略 relative 事件，避免冲突
+  if (hasAbsoluteData) return;
+  
   let heading = null;
   if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
     heading = event.webkitCompassHeading;
     sensorType.value = 'iOS Compass';
-  } else if (event.absolute && event.alpha !== null) {
-    heading = event.alpha;
-    sensorType.value = 'Android Absolute';
-    if (isXiaomi) heading = 360 - heading;
   } else if (event.alpha !== null) {
     heading = event.alpha;
     sensorType.value = 'Android Relative';
@@ -313,11 +372,7 @@ const handleOrientation = (event) => {
   }
   
   if (heading !== null) {
-    heading = heading % 360;
-    if (heading < 0) heading += 360;
-    updateAccumulatedRotation(heading);
-    rawHeading.value = heading;
-    smoothedHeading.value = smoothHeading(heading);
+    processHeading(heading);
   }
 };
 
@@ -358,11 +413,16 @@ const startCompass = async () => {
   accumulatedRotation.value = 0;
   renderRotation.value = 0;
   lastHeading.value = null;
+  filteredHeading.value = null;
+  hasAbsoluteData = false;
   
   getScreenOrientation();
-  orientationHandler = handleOrientation;
   
-  window.addEventListener('deviceorientationabsolute', orientationHandler, true);
+  // 使用两个独立的 handler，absolute 优先，一旦收到 absolute 数据就自动忽略 relative
+  absoluteHandler = handleAbsoluteOrientation;
+  orientationHandler = handleRelativeOrientation;
+  
+  window.addEventListener('deviceorientationabsolute', absoluteHandler, true);
   window.addEventListener('deviceorientation', orientationHandler, true);
   
   if (window.screen && window.screen.orientation) {
@@ -377,8 +437,11 @@ const startCompass = async () => {
 };
 
 const stopCompass = () => {
+  if (absoluteHandler) {
+    window.removeEventListener('deviceorientationabsolute', absoluteHandler, true);
+    absoluteHandler = null;
+  }
   if (orientationHandler) {
-    window.removeEventListener('deviceorientationabsolute', orientationHandler, true);
     window.removeEventListener('deviceorientation', orientationHandler, true);
     orientationHandler = null;
   }
@@ -390,6 +453,8 @@ const stopCompass = () => {
   
   isActive.value = false;
   headingHistory.value = [];
+  hasAbsoluteData = false;
+  filteredHeading.value = null;
   
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
