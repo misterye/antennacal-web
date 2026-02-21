@@ -31,37 +31,39 @@
           <circle cx="110" cy="110" r="100" fill="url(#compassBg)"/>
           <circle cx="110" cy="110" r="100" fill="none" stroke="var(--cyan-dim)" stroke-width="0.75"/>
           
-          <g id="ticks">
-            <line v-for="(tick, index) in ticks" :key="index" :x1="tick.x1" :y1="tick.y1" :x2="tick.x2" :y2="tick.y2" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.4)' : 'rgba(0,152,200,0.4)'" :stroke-opacity="tick.opacity" :stroke-width="tick.width" />
-          </g>
-          <g id="cardinals" font-family="'JetBrains Mono',monospace" text-anchor="middle" dominant-baseline="central">
-            <text x="110" y="18" font-size="11" font-weight="600" :fill="theme === 'dark' ? '#f0f4ff' : '#0d1524'" letter-spacing="0.1em">N</text>
-            <text x="202" y="110" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">E</text>
-            <text x="110" y="202" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">S</text>
-            <text x="18" y="110" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">W</text>
-            <text x="166" y="44" font-size="8" fill="var(--cyan-dim)">NE</text>
-            <text x="166" y="176" font-size="8" fill="var(--cyan-dim)">SE</text>
-            <text x="48" y="176" font-size="8" fill="var(--cyan-dim)">SW</text>
-            <text x="48" y="44" font-size="8" fill="var(--cyan-dim)">NW</text>
-          </g>
-          
-          <g v-if="targetPath" id="targetArc">
-            <path :d="targetPath.d" :stroke="theme === 'dark' ? '#00d4ff' : '#0098c8'" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.75" filter="url(#glow)"/>
+          <g id="dialGroup" :style="{ transform: `rotate(${-renderRotation}deg)`, transformOrigin: '110px 110px' }">
+            <g id="ticks">
+              <line v-for="(tick, index) in ticks" :key="index" :x1="tick.x1" :y1="tick.y1" :x2="tick.x2" :y2="tick.y2" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.4)' : 'rgba(0,152,200,0.4)'" :stroke-opacity="tick.opacity" :stroke-width="tick.width" />
+            </g>
+            <g id="cardinals" font-family="'JetBrains Mono',monospace" text-anchor="middle" dominant-baseline="central">
+              <text x="110" y="18" font-size="11" font-weight="600" :fill="theme === 'dark' ? '#f0f4ff' : '#0d1524'" letter-spacing="0.1em">N</text>
+              <text x="202" y="110" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">E</text>
+              <text x="110" y="202" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">S</text>
+              <text x="18" y="110" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">W</text>
+              <text x="166" y="44" font-size="8" fill="var(--cyan-dim)">NE</text>
+              <text x="166" y="176" font-size="8" fill="var(--cyan-dim)">SE</text>
+              <text x="48" y="176" font-size="8" fill="var(--cyan-dim)">SW</text>
+              <text x="48" y="44" font-size="8" fill="var(--cyan-dim)">NW</text>
+            </g>
+            
+            <g v-if="targetPath" id="targetArc">
+              <path :d="targetPath.d" :stroke="theme === 'dark' ? '#00d4ff' : '#0098c8'" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.75" filter="url(#glow)"/>
+            </g>
+
+            <g id="targetLine" :transform="`rotate(${targetAzimuth}, 110, 110)`" opacity="0.7">
+              <line x1="110" y1="40" x2="110" y2="75" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.8)' : 'rgba(0,152,200,0.8)'" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <polygon points="110,36 107.5,44 112.5,44" :fill="theme === 'dark' ? 'rgba(0,212,255,0.8)' : 'rgba(0,152,200,0.8)'"/>
+            </g>
           </g>
 
           <circle cx="110" cy="110" r="72" fill="none" stroke="var(--border)" stroke-width="1"/>
           <circle cx="110" cy="110" r="50" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 6"/>
           
-          <g id="needleGroup" :style="{ transform: `rotate(${-renderRotation}deg)` }">
+          <g id="needleGroup">
             <polygon points="110,38 107,110 113,110" fill="var(--amber)" filter="url(#nglow)" opacity="0.9"/>
             <polygon points="110,182 107,110 113,110" :fill="theme === 'dark' ? 'rgba(0,212,255,0.45)' : 'rgba(0,152,200,0.45)'"/>
             <circle cx="110" cy="110" r="7" :fill="theme === 'dark' ? '#0d1e35' : '#e4f0fa'" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.6)' : 'rgba(0,152,200,0.6)'" stroke-width="1.5"/>
             <circle cx="110" cy="110" r="3" :fill="theme === 'dark' ? 'rgba(0,212,255,0.9)' : 'rgba(0,152,200,0.9)'"/>
-          </g>
-          
-          <g id="targetLine" :transform="`rotate(${targetAzimuth}, 110, 110)`" opacity="0.7">
-            <line x1="110" y1="40" x2="110" y2="75" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.8)' : 'rgba(0,152,200,0.8)'" stroke-width="1.5" stroke-dasharray="4 3"/>
-            <polygon points="110,36 107.5,44 112.5,44" :fill="theme === 'dark' ? 'rgba(0,212,255,0.8)' : 'rgba(0,152,200,0.8)'"/>
           </g>
         </svg>
       </div>
@@ -72,10 +74,12 @@
       <div class="reading-item">
         <div class="reading-label">{{ t.currentHeading }}</div>
         <div class="reading-value current">{{ Math.round(smoothedHeading) }}°</div>
+        <div class="reading-subtext">{{ formatDirection(smoothedHeading) }}</div>
       </div>
       <div class="reading-item">
         <div class="reading-label">{{ t.targetAzimuth }}</div>
         <div class="reading-value target">{{ Math.round(targetAzimuth) }}°</div>
+        <div class="reading-subtext">{{ formatDirection(targetAzimuth) }}</div>
       </div>
       <div class="reading-item">
         <div class="reading-label">{{ t.difference }}</div>
@@ -87,9 +91,9 @@
     </div>
     
     <div class="turn-indicator" v-if="isActive && isSupported && !isAligned">
-      <span class="turn-arrow" :class="{ 'turn-left': angleDifference > 0, 'turn-right': angleDifference < 0 }">←</span>
-      <span>{{ angleDifference > 0 ? t.turnLeft : t.turnRight }}</span>
-      <span class="turn-arrow" :class="{ 'turn-left': angleDifference > 0, 'turn-right': angleDifference < 0 }">←</span>
+      <span class="turn-arrow" :class="{ 'turn-left': angleDifference < 0, 'turn-right': angleDifference > 0 }">←</span>
+      <span>{{ angleDifference > 0 ? t.turnRight : t.turnLeft }}</span>
+      <span class="turn-arrow" :class="{ 'turn-left': angleDifference < 0, 'turn-right': angleDifference > 0 }">←</span>
     </div>
 
   </div>
@@ -145,6 +149,22 @@ const translations = {
 
 const t = computed(() => translations[props.language]);
 
+const formatDirection = (deg) => {
+  let angle = Math.round(deg) % 360;
+  if(angle < 0) angle += 360;
+  
+  if (angle === 0) return props.language === 'zh' ? '正北' : 'North';
+  if (angle === 90) return props.language === 'zh' ? '正东' : 'East';
+  if (angle === 180) return props.language === 'zh' ? '正南' : 'South';
+  if (angle === 270) return props.language === 'zh' ? '正西' : 'West';
+  
+  if (angle > 0 && angle < 90) return props.language === 'zh' ? `北偏东${angle}°` : `N${angle}°E`;
+  if (angle > 90 && angle < 180) return props.language === 'zh' ? `南偏东${180 - angle}°` : `S${180 - angle}°E`;
+  if (angle > 180 && angle < 270) return props.language === 'zh' ? `南偏西${angle - 180}°` : `S${angle - 180}°W`;
+  if (angle > 270 && angle < 360) return props.language === 'zh' ? `北偏西${360 - angle}°` : `N${360 - angle}°W`;
+  return '';
+};
+
 const isActive = ref(false);
 const isSupported = ref(true);
 const hasPermission = ref(true);
@@ -161,9 +181,9 @@ const sensorType = ref('');
 // EMA 滤波后的航向（0-360）
 const filteredHeading = ref(null);
 // EMA 平滑系数，越小越平滑（0.05 = 极强滤波，适用于传感器噪声大的安卓设备）
-const EMA_ALPHA = 0.05;
+const EMA_ALPHA = 0.4;
 // 微小变化死区阈值，单位度。小于此阈值的变化完全忽略，可消除静止时的微抖
-const DEAD_ZONE = 1.5;
+const DEAD_ZONE = 0.2;
 
 // 对角度做 EMA 滤波（在sin/cos空间进行以正确处理 0°/360° 边界）
 const emaFilterHeading = (newHeading) => {
@@ -197,8 +217,8 @@ let animationFrameId = null;
 const animateCompass = () => {
   const diff = accumulatedRotation.value - renderRotation.value;
   if (Math.abs(diff) > 0.01) {
-    // 使用 0.06 的平滑系数，数值越小越平滑但会有略微延迟
-    renderRotation.value += diff * 0.06;
+    // 使用 0.3 的平滑系数，大幅提升跟手度
+    renderRotation.value += diff * 0.3;
   } else {
     renderRotation.value = accumulatedRotation.value;
   }
@@ -331,7 +351,10 @@ let absoluteHandler = null;
 let hasAbsoluteData = false; // 标记是否已收到 absolute 数据
 
 // 处理方向事件（通用）
-const processHeading = (heading) => {
+const processHeading = (rawAlphaBasedHeading) => {
+  // 加算屏幕旋转角度（横屏时校正）
+  let heading = rawAlphaBasedHeading + screenOrientation.value;
+  
   heading = heading % 360;
   if (heading < 0) heading += 360;
   
@@ -351,8 +374,8 @@ const handleAbsoluteOrientation = (event) => {
   if (event.alpha === null) return;
   hasAbsoluteData = true;
   sensorType.value = 'Android Absolute';
-  let heading = event.alpha;
-  if (isXiaomi) heading = 360 - heading;
+  // W3C 标准：alpha 为绕 Z 轴的旋转（逆时针为正），指南针的方位角是顺时针的，所以取反
+  let heading = 360 - event.alpha;
   processHeading(heading);
 };
 
@@ -363,12 +386,12 @@ const handleRelativeOrientation = (event) => {
   
   let heading = null;
   if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+    // iOS Safari 专有属性，已经是真实的顺时针方向，无需补偿和转换
     heading = event.webkitCompassHeading;
     sensorType.value = 'iOS Compass';
   } else if (event.alpha !== null) {
-    heading = event.alpha;
+    heading = 360 - event.alpha;
     sensorType.value = 'Android Relative';
-    if (isXiaomi) heading = 360 - heading;
   }
   
   if (heading !== null) {
@@ -516,12 +539,13 @@ onUnmounted(() => {
 .compass-wrap { display: flex; justify-content: center; margin: 10px 0 20px; }
 .compass-svg-container { width: 220px; height: 220px; }
 #compassSvg { width: 100%; height: 100%; filter: drop-shadow(0 0 20px var(--compass-glow)); transition: filter 0.4s; }
+#dialGroup { transition: transform 0.0s linear; }
 #needleGroup { transform-origin: 110px 110px; }
 
 .compass-readings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px; }
 .reading-item {
   background: var(--reading-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 12px; text-align: center;
+  border-radius: 10px; padding: 10px 8px; text-align: center;
   transition: background 0.4s, border-color 0.35s;
 }
 .reading-label {
@@ -529,6 +553,10 @@ onUnmounted(() => {
   color: var(--text-secondary); text-transform: uppercase; margin-bottom: 5px; transition: color 0.35s;
 }
 .reading-value { font-family: var(--font-mono); font-size: 18px; font-weight: 500; line-height: 1; }
+.reading-subtext {
+  font-family: var(--font-body); font-size: 10px; color: var(--text-secondary);
+  margin-top: 4px; opacity: 0.8; letter-spacing: 0.05em;
+}
 .reading-value.target { color: var(--cyan); text-shadow: 0 0 12px var(--cyan-dim); }
 .reading-value.current { color: var(--text-primary); }
 .reading-value.delta-left { color: var(--amber); }
