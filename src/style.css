@@ -1,17 +1,254 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap');
+
+/* =============================================
+   THEME TOKENS
+   ============================================= */
+
+/* Dark Theme - Deep Space Control Panel */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #213547;
-  background-color: #ffffff;
+  --bg-deep: #0a0e1a;
+  --bg-mid: #111827;
+  --bg-surface: rgba(255, 255, 255, 0.04);
+  --bg-surface-2: rgba(255, 255, 255, 0.06);
+  --bg-header: rgba(10, 14, 26, 0.85);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(0, 212, 255, 0.4);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --text-primary: #f0f4ff;
+  --text-secondary: #8899bb;
+  --input-bg: rgba(0, 212, 255, 0.03);
+  --input-border-focus: rgba(0, 212, 255, 0.4);
+  --input-shadow-focus: 0 0 0 2px rgba(0, 212, 255, 0.25);
+  --select-option: #111827;
+  --map-bg-a: #0d1524;
+  --map-bg-b: #0a0e1a;
+  --compass-bg-a: #111827;
+  --compass-bg-b: #0a0e1a;
+  --compass-glow: rgba(0, 212, 255, 0.15);
+  --reading-bg: rgba(0, 212, 255, 0.03);
+  --metric-bg: rgba(0, 212, 255, 0.03);
+  --info-note-bg: rgba(245, 158, 11, 0.1);
+  --info-note-border: rgba(245, 158, 11, 0.2);
+  --info-note-color: rgba(245, 158, 11, 0.9);
+  --cyan: #00d4ff;
+  --cyan-dim: rgba(0, 212, 255, 0.15);
+  --cyan-glow: rgba(0, 212, 255, 0.4);
+  --amber: #f59e0b;
+  --green: #10b981;
+  --red: #ef4444;
+  --calc-btn-bg: linear-gradient(135deg, #0088cc 0%, #00d4ff 100%);
+  --calc-btn-color: #060b18;
+  --body-grid: 1;
+  --grid-color: rgba(0, 212, 255, 0.02);
+  --star-opacity: 1;
+  --blur-amount: 20px;
+}
+
+/* Light Theme - Precise Instrument */
+html[data-theme='light'] {
+  --bg-deep: #f8faff;
+  --bg-mid: #f0f4f8;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f8f9fa;
+  --bg-header: rgba(248, 250, 255, 0.85);
+  --border: rgba(0, 0, 0, 0.06);
+  --border-hover: rgba(0, 152, 200, 0.4);
+  --shadow-card: 0 4px 16px rgba(13, 21, 36, 0.08), 0 1px 4px rgba(13, 21, 36, 0.04);
+  --text-primary: #0d1524;
+  --text-secondary: #4a5a75;
+  --input-bg: #ffffff;
+  --input-border-focus: #0098c8;
+  --input-shadow-focus: 0 0 0 2px rgba(0, 152, 200, 0.15);
+  --select-option: #ffffff;
+  --map-bg-a: #e4edf4;
+  --map-bg-b: #d4e0eb;
+  --compass-bg-a: #f0f4f8;
+  --compass-bg-b: #ffffff;
+  --compass-glow: rgba(0, 152, 200, 0.08);
+  --reading-bg: #f8faff;
+  --metric-bg: #f8faff;
+  --info-note-bg: rgba(245, 158, 11, 0.08);
+  --info-note-border: rgba(245, 158, 11, 0.25);
+  --info-note-color: #b45309;
+  --cyan: #0098c8;
+  --cyan-dim: rgba(0, 152, 200, 0.1);
+  --cyan-glow: rgba(0, 152, 200, 0.25);
+  --amber: #d97706;
+  --green: #059669;
+  --red: #dc2626;
+  --calc-btn-bg: linear-gradient(135deg, #0077a3 0%, #0098c8 100%);
+  --calc-btn-color: #ffffff;
+  --body-grid: 1;
+  --grid-color: rgba(13, 21, 36, 0.03);
+  --star-opacity: 0;
+  --blur-amount: 12px;
+}
+
+/* =============================================
+   BASE STYLES
+   ============================================= */
+
+:root {
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  min-width: 320px;
+  font-family: var(--font-body);
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
   min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  transition: background-color 0.4s ease, color 0.3s ease;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
+/* Background effects */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--star-opacity);
+  transition: opacity 0.5s ease;
+  background-image:
+    radial-gradient(1px 1px at 15% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 20%, rgba(255, 255, 255, 0.3) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 85% 60%, rgba(0, 212, 255, 0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 45% 75%, rgba(255, 255, 255, 0.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 45%, rgba(255, 255, 255, 0.25) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 10% 80%, rgba(0, 212, 255, 0.2) 0%, transparent 100%);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--body-grid);
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 32px 32px;
+  transition: opacity 0.5s ease;
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cyan-dim);
+  border-radius: 4px;
+}
+
+/* Global helper classes */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* Animation Keyframes */
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-signal {
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 2px var(--green);
+  }
+}
+
+@keyframes map-ping {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes ripple-anim {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% center;
+  }
+
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Micro animations */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(0);
+  animation: ripple-anim 0.6s linear;
+  pointer-events: none;
 }

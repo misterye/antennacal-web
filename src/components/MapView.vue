@@ -1,5 +1,5 @@
 <template>
-  <div class="map-container">
+  <div class="map-container" :class="`map-theme-${theme}`">
     <div id="map"></div>
     <div class="south-indicator">{{ southText }}</div>
   </div>
@@ -26,75 +26,69 @@ const props = defineProps({
   language: {
     type: String,
     default: 'zh'
+  },
+  theme: {
+    type: String,
+    default: 'dark'
   }
 });
 
 let map = null;
 let marker = null;
+let currentTheme = props.theme;
 
 // 多语言文本
 const southText = computed(() => {
   return props.language === 'zh' ? '向下为正南' : 'South ↓';
 });
 
-// 创建箭头图标
+// 创建带动画脉冲的箭头图标
 const createArrowIcon = (rotation) => {
+  const color = props.theme === 'dark' ? '#00d4ff' : '#0098c8';
+  const shadowFilter = props.theme === 'dark' 
+    ? `<filter id="shadow"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>`
+    : `<filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/></filter>`;
+  
   const arrowSvg = `
-    <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#ee5a6f;stop-opacity:1" />
-        </linearGradient>
-        <filter id="shadow">
-          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.5"/>
-        </filter>
-      </defs>
-      <!-- 箭头主体 -->
-      <g transform="rotate(${rotation} 25 25)" filter="url(#shadow)">
-        <!-- 箭头杆 -->
-        <rect x="21" y="15" width="8" height="20" fill="url(#arrowGradient)" rx="2"/>
-        <!-- 箭头头部 -->
-        <path d="M 25 5 L 10 20 L 18 20 L 18 15 L 32 15 L 32 20 L 40 20 Z" fill="url(#arrowGradient)"/>
-        <!-- 白色边框增强可见度 -->
-        <path d="M 25 5 L 10 20 L 18 20 L 18 15 L 32 15 L 32 20 L 40 20 Z" 
-              fill="none" stroke="white" stroke-width="1.5" opacity="0.8"/>
-        <rect x="21" y="15" width="8" height="20" fill="none" 
-              stroke="white" stroke-width="1.5" opacity="0.8" rx="2"/>
-      </g>
-    </svg>
+    <div class="map-pulse-container">
+      <div class="map-pulse" style="border-color: ${color}"></div>
+      <div class="map-pulse" style="border-color: ${color}; animation-delay: 0.8s"></div>
+      <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" style="position:relative; z-index:2">
+        <defs>${shadowFilter}</defs>
+        <g transform="rotate(${rotation} 25 25)" filter="url(#shadow)">
+          <path d="M 25 5 L 12 25 L 22 20 L 22 45 L 28 45 L 28 20 L 38 25 Z" fill="${color}"/>
+        </g>
+      </svg>
+    </div>
   `;
   
   return L.divIcon({
-    className: 'arrow-marker',
+    className: 'custom-map-marker',
     html: arrowSvg,
     iconSize: [50, 50],
-    iconAnchor: [25, 25] // 中心锚点
+    iconAnchor: [25, 25]
   });
 };
 
 const initMap = () => {
-  // 检查地图容器是否存在
   if (!document.getElementById('map')) return;
 
-  const lat = parseFloat(props.latitude) || 30;
-  const lng = parseFloat(props.longitude) || 120;
+  const lat = parseFloat(props.latitude) || 31.24;
+  const lng = parseFloat(props.longitude) || 121.50;
 
   if (map) {
     map.remove();
   }
 
-  map = L.map('map').setView([lat, lng], 13);
+  map = L.map('map', { zoomControl: false }).setView([lat, lng], 13);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // 使用高德地图瓦片服务（中国大陆可用）
-  // 根据语言选择中文或英文标注
-  const layerType = props.language === 'zh' ? 'Normal.Map' : 'en_r'; // 中文标注 / English
-  
   L.tileLayer(`https://webrd0{s}.is.autonavi.com/appmaptile?lang=${props.language === 'zh' ? 'zh_cn' : 'en'}&size=1&scale=1&style=8&x={x}&y={y}&z={z}`, {
     subdomains: ['1', '2', '3', '4'],
     attribution: '&copy; <a href="https://www.amap.com/" target="_blank">高德地图</a>',
     maxZoom: 18,
-    minZoom: 3
+    minZoom: 3,
+    className: 'map-tiles'
   }).addTo(map);
 
   updateMarker();
@@ -102,39 +96,27 @@ const initMap = () => {
 
 const updateMarker = () => {
   if (!map) return;
-
   const lat = parseFloat(props.latitude);
   const lng = parseFloat(props.longitude);
-  
   if (isNaN(lat) || isNaN(lng)) return;
 
-  // 箭头指向方位角方向（0度为北，顺时针）
   const rotation = props.azimuth;
-
-  // 生成 tooltip 文本
   const tooltipText = props.language === 'zh' 
     ? `方位角: ${Math.round(props.azimuth)}°` 
     : `Azimuth: ${Math.round(props.azimuth)}°`;
 
   if (marker) {
-    // 更新现有 marker
     marker.setLatLng([lat, lng]);
     marker.setIcon(createArrowIcon(rotation));
-    // 更新 tooltip 内容
     marker.setTooltipContent(tooltipText);
     marker.options.title = props.language === 'zh' ? '天线指向' : 'Antenna Direction';
   } else {
-    // 创建新 marker
     marker = L.marker([lat, lng], { 
       icon: createArrowIcon(rotation),
       title: props.language === 'zh' ? '天线指向' : 'Antenna Direction'
     }).addTo(map);
     
-    // 绑定 tooltip
-    marker.bindTooltip(tooltipText, {
-      permanent: false,
-      direction: 'top'
-    });
+    marker.bindTooltip(tooltipText, { permanent: false, direction: 'top' });
   }
   
   map.setView([lat, lng], map.getZoom());
@@ -149,43 +131,72 @@ watch(() => [props.latitude, props.longitude, props.azimuth], () => {
 });
 
 watch(() => props.language, () => {
-  // 语言切换时重新初始化地图，以更新地图标注语言
   initMap();
 });
 
+watch(() => props.theme, (newTheme) => {
+  if (currentTheme !== newTheme) {
+    currentTheme = newTheme;
+    updateMarker(); // To recreate the icon with the correct tint color
+  }
+});
 </script>
 
 <style scoped>
 .map-container {
   width: 100%;
   height: 100%;
-  min-height: 300px;
+  min-height: 200px;
   position: relative;
+  background-color: var(--map-bg-a);
 }
 
-#map {
-  width: 100%;
-  height: 100%;
-}
+#map { width: 100%; height: 100%; z-index: 1; }
 
 .south-indicator {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: rgba(255, 255, 255, 0.9);
+  background: var(--bg-surface-2);
   padding: 5px 10px;
   border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #333;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-card);
   z-index: 1000;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-/* 移除箭头标记的默认样式 */
-:deep(.arrow-marker) {
+/* Override Map Tile filter for dark mode using the map-theme-dark class */
+.map-container.map-theme-dark :deep(.map-tiles) {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%);
+}
+.map-container.map-theme-dark :deep(.leaflet-control-zoom-in),
+.map-container.map-theme-dark :deep(.leaflet-control-zoom-out),
+.map-container.map-theme-dark :deep(.leaflet-control-attribution) {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%);
+}
+
+/* Custom Marker CSS Animation */
+:deep(.map-pulse-container) {
+  position: relative; width: 50px; height: 50px;
+}
+:deep(.map-pulse) {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 40px; height: 40px; border-radius: 50%; border: 2px solid; opacity: 0;
+  animation: map-ping 2.5s ease-out infinite;
+}
+:deep(.custom-map-marker) {
   background: transparent !important;
   border: none !important;
+}
+
+@keyframes map-ping {
+  0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
 }
 </style>

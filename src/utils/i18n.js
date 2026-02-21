@@ -15,10 +15,12 @@ export const translations = {
 
         // 输出部分
         results: '计算结果',
+        resultsPlaceholder: '按下 "计算参数" 获取卫星指向数据',
         orbitalLongitude: '轨道经度：',
         elevation: '俯仰角：',
         azimuth: '方位角：',
-        polarization: '极化角：',
+        polarization: '极化角（正为顺时针）：',
+        polarizationHint: '面对天线反馈面，正数为顺时针，负数为逆时针',
 
         // 地图
         mapTitle: '位置及天线方位',
@@ -67,10 +69,12 @@ export const translations = {
 
         // Output section
         results: 'Results',
+        resultsPlaceholder: 'Press "Calculate" to get satellite pointing data',
         orbitalLongitude: 'Orbital Longitude:',
         elevation: 'Elevation Angle:',
         azimuth: 'Azimuth Angle:',
-        polarization: 'Polarization Angle:',
+        polarization: 'Polarization (+ is CW):',
+        polarizationHint: 'Facing antenna feed: positive is clockwise, negative is counter-clockwise',
 
         // Map
         mapTitle: 'Location & Antenna Direction',

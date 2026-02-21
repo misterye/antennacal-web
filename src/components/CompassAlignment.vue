@@ -1,102 +1,97 @@
 <template>
-  <div class="compass-container">
+  <div class="compass-card">
     <div class="compass-header">
-      <h3>{{ t.title }}</h3>
-      <button v-if="!isActive" @click="startCompass" class="start-button">
-        {{ t.start }}
+      <span class="compass-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:6px"><circle cx="12" cy="12" r="10"/><polygon points="12 2 14.09 8.26 20.22 9 16 13.14 17.18 19.22 12 16.5 6.82 19.22 8 13.14 3.78 9 9.91 8.26"/></svg>
+        {{ t.title }}
+      </span>
+      <button class="btn-start-compass" :class="{ active: isActive }" @click="toggleCompass">
+        <svg v-if="!isActive" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="12 2 14.09 8.26 20.22 9 16 13.14 17.18 19.22 12 16.5 6.82 19.22 8 13.14 3.78 9 9.91 8.26"/></svg>
+        <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        {{ !isActive ? t.start : t.stop }}
       </button>
-      <button v-else @click="stopCompass" class="stop-button">
-        {{ t.stop }}
-      </button>
     </div>
 
-    <div v-if="!isSupported" class="error-message">
-      {{ t.notSupported }}
-    </div>
+    <!-- Error Messages -->
+    <div v-if="!isSupported" class="error-message">{{ t.notSupported }}</div>
+    <div v-else-if="!hasPermission && needsPermission" class="error-message">{{ t.needPermission }}</div>
 
-    <div v-else-if="!hasPermission && needsPermission" class="error-message">
-      {{ t.needPermission }}
-    </div>
+    <div v-else class="compass-wrap">
+      <div class="compass-svg-container">
+        <svg id="compassSvg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="compassBg" cx="50%" cy="50%" r="50%">
+              <stop id="bgStop1" offset="0%" :stop-color="theme === 'dark' ? '#0d1e35' : '#e4f0fa'"/>
+              <stop id="bgStop2" offset="100%" :stop-color="theme === 'dark' ? '#0a0e1a' : '#f0f4f8'"/>
+            </radialGradient>
+            <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+            <filter id="nglow"><feGaussianBlur stdDeviation="2.5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+          </defs>
+          <circle cx="110" cy="110" r="105" fill="none" stroke="var(--border)" stroke-width="1"/>
+          <circle cx="110" cy="110" r="100" fill="url(#compassBg)"/>
+          <circle cx="110" cy="110" r="100" fill="none" stroke="var(--cyan-dim)" stroke-width="0.75"/>
+          
+          <g id="ticks">
+            <line v-for="(tick, index) in ticks" :key="index" :x1="tick.x1" :y1="tick.y1" :x2="tick.x2" :y2="tick.y2" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.4)' : 'rgba(0,152,200,0.4)'" :stroke-opacity="tick.opacity" :stroke-width="tick.width" />
+          </g>
+          <g id="cardinals" font-family="'JetBrains Mono',monospace" text-anchor="middle" dominant-baseline="central">
+            <text x="110" y="18" font-size="11" font-weight="600" :fill="theme === 'dark' ? '#f0f4ff' : '#0d1524'" letter-spacing="0.1em">N</text>
+            <text x="202" y="110" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">E</text>
+            <text x="110" y="202" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">S</text>
+            <text x="18" y="110" font-size="11" font-weight="600" fill="var(--cyan)" letter-spacing="0.1em">W</text>
+            <text x="166" y="44" font-size="8" fill="var(--cyan-dim)">NE</text>
+            <text x="166" y="176" font-size="8" fill="var(--cyan-dim)">SE</text>
+            <text x="48" y="176" font-size="8" fill="var(--cyan-dim)">SW</text>
+            <text x="48" y="44" font-size="8" fill="var(--cyan-dim)">NW</text>
+          </g>
+          
+          <g v-if="targetPath" id="targetArc">
+            <path :d="targetPath.d" :stroke="theme === 'dark' ? '#00d4ff' : '#0098c8'" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.75" filter="url(#glow)"/>
+          </g>
 
-    <div v-else class="compass-display">
-      <div class="compass-wrapper">
-        <!-- 固定的罗盘圆盘（N始终在上方） -->
-        <div class="compass-circle">
-          <!-- 刻度 -->
-          <div class="degree-marks">
-            <div v-for="i in 36" :key="i" class="degree-mark"
-              :style="{ transform: `rotate(${(i - 1) * 10}deg)` }">
-              <div class="mark-line" :class="{ 'major': (i - 1) % 3 === 0 }"></div>
-            </div>
-          </div>
-
-          <!-- 方向标记 -->
-          <div class="direction-label north">N</div>
-          <div class="direction-label east">E</div>
-          <div class="direction-label south">S</div>
-          <div class="direction-label west">W</div>
-
-          <!-- 目标方位指示器（绿色扇形） -->
-          <div class="target-indicator" 
-            :style="{ transform: `rotate(${targetAzimuth}deg)` }">
-            <div class="target-wedge"></div>
-            <div class="target-label">{{ Math.round(targetAzimuth) }}°</div>
-          </div>
-        </div>
-
-        <!-- 设备方向指针（红色箭头，会旋转） -->
-        <!-- 使用负角度使指针与设备旋转方向一致 -->
-        <div class="device-needle" 
-          :class="{ 'aligned': isStableAligned }"
-          :style="{ transform: `rotate(${-accumulatedRotation}deg)` }">
-          <div class="needle-head"></div>
-          <div class="needle-tail"></div>
-        </div>
-
-        <!-- 中心点 -->
-        <div class="center-point"></div>
+          <circle cx="110" cy="110" r="72" fill="none" stroke="var(--border)" stroke-width="1"/>
+          <circle cx="110" cy="110" r="50" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 6"/>
+          
+          <g id="needleGroup" :style="{ transform: `rotate(${-accumulatedRotation}deg)` }">
+            <polygon points="110,38 107,110 113,110" fill="var(--amber)" filter="url(#nglow)" opacity="0.9"/>
+            <polygon points="110,182 107,110 113,110" :fill="theme === 'dark' ? 'rgba(0,212,255,0.45)' : 'rgba(0,152,200,0.45)'"/>
+            <circle cx="110" cy="110" r="7" :fill="theme === 'dark' ? '#0d1e35' : '#e4f0fa'" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.6)' : 'rgba(0,152,200,0.6)'" stroke-width="1.5"/>
+            <circle cx="110" cy="110" r="3" :fill="theme === 'dark' ? 'rgba(0,212,255,0.9)' : 'rgba(0,152,200,0.9)'"/>
+          </g>
+          
+          <g id="targetLine" :transform="`rotate(${targetAzimuth}, 110, 110)`" opacity="0.7">
+            <line x1="110" y1="40" x2="110" y2="75" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.8)' : 'rgba(0,152,200,0.8)'" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <polygon points="110,36 107.5,44 112.5,44" :fill="theme === 'dark' ? 'rgba(0,212,255,0.8)' : 'rgba(0,152,200,0.8)'"/>
+          </g>
+        </svg>
       </div>
+    </div>
 
-      <!-- 信息面板 -->
-      <div class="info-panel">
-        <div class="info-row">
-          <span class="info-label">{{ t.currentHeading }}:</span>
-          <span class="info-value">{{ Math.round(smoothedHeading) }}°</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">{{ t.targetAzimuth }}:</span>
-          <span class="info-value target-color">{{ Math.round(targetAzimuth) }}°</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">{{ t.difference }}:</span>
-          <span class="info-value" :class="{ 'aligned-text': isStableAligned }">
-            {{ Math.round(Math.abs(angleDifference)) }}°
-          </span>
-        </div>
-        
-        <!-- 调试信息（仅开发时显示） -->
-        <div v-if="showDebug" class="debug-info">
-          <div class="debug-row">Raw: {{ Math.round(rawHeading) }}°</div>
-          <div class="debug-row">Smoothed: {{ Math.round(smoothedHeading) }}°</div>
-          <div class="debug-row">Accumulated: {{ Math.round(accumulatedRotation) }}°</div>
-          <div class="debug-row">Sensor: {{ sensorType }}</div>
-          <div class="debug-row">Device: {{ deviceInfo }}</div>
-          <div class="debug-row">Screen: {{ screenOrientation }}°</div>
-        </div>
-        
-        <div v-if="isStableAligned" class="aligned-indicator">
-          ✓ {{ t.aligned }}
-        </div>
-        <div v-else class="hint" :class="{ 'hint-close': isVisuallyAligned }">
-          <span v-if="angleDifference > 0">
-            ← {{ t.turnLeft }}
-          </span>
-          <span v-else>
-            → {{ t.turnRight }}
-          </span>
+    <!-- Readings -->
+    <div class="compass-readings" v-if="isActive && isSupported">
+      <div class="reading-item">
+        <div class="reading-label">{{ t.currentHeading }}</div>
+        <div class="reading-value current">{{ Math.round(smoothedHeading) }}°</div>
+      </div>
+      <div class="reading-item">
+        <div class="reading-label">{{ t.targetAzimuth }}</div>
+        <div class="reading-value target">{{ Math.round(targetAzimuth) }}°</div>
+      </div>
+      <div class="reading-item">
+        <div class="reading-label">{{ t.difference }}</div>
+        <div class="reading-value" :class="isAligned ? 'delta-aligned' : 'delta-left'">
+          <span v-if="isAligned">✓</span>
+          <span v-else>{{ Math.round(Math.abs(angleDifference)) }}°</span>
         </div>
       </div>
     </div>
+    
+    <div class="turn-indicator" v-if="isActive && isSupported && !isAligned">
+      <span class="turn-arrow" :class="{ 'turn-left': angleDifference > 0, 'turn-right': angleDifference < 0 }">←</span>
+      <span>{{ angleDifference > 0 ? t.turnLeft : t.turnRight }}</span>
+      <span class="turn-arrow" :class="{ 'turn-left': angleDifference > 0, 'turn-right': angleDifference < 0 }">←</span>
+    </div>
+
   </div>
 </template>
 
@@ -111,6 +106,10 @@ const props = defineProps({
   language: {
     type: String,
     default: 'zh'
+  },
+  theme: {
+    type: String,
+    default: 'dark'
   }
 });
 
@@ -153,37 +152,49 @@ const needsPermission = ref(false);
 const rawHeading = ref(0);
 const smoothedHeading = ref(0);
 const sensorType = ref('');
-const showDebug = ref(false); // 设为 true 可显示调试信息
+
+// Computed Ticks for SVG
+const ticks = computed(() => {
+  const t = [];
+  for (let i = 0; i < 360; i += 5) {
+    const rad = (i - 90) * Math.PI / 180;
+    const maj = i % 45 === 0, med = i % 15 === 0;
+    const r1 = 92, r2 = maj ? 78 : (med ? 82 : 88);
+    const cx = 110, cy = 110;
+    t.push({
+      x1: cx + r1 * Math.cos(rad),
+      y1: cy + r1 * Math.sin(rad),
+      x2: cx + r2 * Math.cos(rad),
+      y2: cy + r2 * Math.sin(rad),
+      opacity: maj ? '0.65' : (med ? '0.38' : '0.15'),
+      width: maj ? '1.5' : '0.75'
+    });
+  }
+  return t;
+});
+
+const targetPath = computed(() => {
+  if (!props.targetAzimuth) return null;
+  const cx = 110, cy = 110, r = 86, half = 12;
+  const az = props.targetAzimuth;
+  const a1 = (az - half - 90) * Math.PI / 180;
+  const a2 = (az + half - 90) * Math.PI / 180;
+  const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+  const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+  return { d: `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}` };
+});
 
 // ========== 设备检测 ==========
 const userAgent = navigator.userAgent.toLowerCase();
 const isAndroid = /android/i.test(userAgent);
 const isIOS = /iphone|ipad|ipod/i.test(userAgent);
-
-// Android厂商检测
 const isXiaomi = /xiaomi|mi\s|redmi/i.test(userAgent);
 const isHuawei = /huawei|honor/i.test(userAgent);
 const isOppo = /oppo/i.test(userAgent);
 const isVivo = /vivo/i.test(userAgent);
-const isSamsung = /samsung/i.test(userAgent);
-
-// 设备信息字符串
-const deviceInfo = computed(() => {
-  let info = [];
-  if (isIOS) info.push('iOS');
-  if (isAndroid) info.push('Android');
-  if (isXiaomi) info.push('Xiaomi');
-  if (isHuawei) info.push('Huawei');
-  if (isOppo) info.push('Oppo');
-  if (isVivo) info.push('Vivo');
-  if (isSamsung) info.push('Samsung');
-  return info.join(' ') || 'Unknown';
-});
 
 // 屏幕方向
 const screenOrientation = ref(0);
-
-// 获取屏幕方向角度
 const getScreenOrientation = () => {
   if (window.screen && window.screen.orientation) {
     const angle = window.screen.orientation.angle || 0;
@@ -203,13 +214,11 @@ const lastHeading = ref(null);
 // 平滑处理
 const headingHistory = ref([]);
 const SMOOTHING_WINDOW = 8;
+const SMOOTHING_THRESHOLD = 0.5;
 
-// 稳定性检测
+// 稳定对准检测
 const alignedHistory = ref([]);
 const STABILITY_CHECKS = 5;
-
-// 低通滤波阈值
-const SMOOTHING_THRESHOLD = 0.5;
 
 // 平滑处理函数
 const smoothHeading = (newHeading) => {
@@ -217,21 +226,12 @@ const smoothHeading = (newHeading) => {
     const lastHeading = headingHistory.value[headingHistory.value.length - 1];
     let diff = Math.abs(newHeading - lastHeading);
     if (diff > 180) diff = 360 - diff;
-    
-    if (diff < SMOOTHING_THRESHOLD) {
-      return smoothedHeading.value;
-    }
+    if (diff < SMOOTHING_THRESHOLD) return smoothedHeading.value;
   }
   
   headingHistory.value.push(newHeading);
-  
-  if (headingHistory.value.length > SMOOTHING_WINDOW) {
-    headingHistory.value.shift();
-  }
-  
-  if (headingHistory.value.length < 2) {
-    return newHeading;
-  }
+  if (headingHistory.value.length > SMOOTHING_WINDOW) headingHistory.value.shift();
+  if (headingHistory.value.length < 2) return newHeading;
   
   let sinSum = 0;
   let cosSum = 0;
@@ -247,9 +247,7 @@ const smoothHeading = (newHeading) => {
   
   const avgRad = Math.atan2(sinSum / weightSum, cosSum / weightSum);
   let avgAngle = avgRad * 180 / Math.PI;
-  
   if (avgAngle < 0) avgAngle += 360;
-  
   return avgAngle;
 };
 
@@ -262,16 +260,11 @@ const updateAccumulatedRotation = (newHeading) => {
   }
   
   let delta = newHeading - lastHeading.value;
-  
-  if (delta > 180) {
-    delta = delta - 360;
-  } else if (delta < -180) {
-    delta = delta + 360;
-  }
+  if (delta > 180) delta -= 360;
+  else if (delta < -180) delta += 360;
   
   accumulatedRotation.value += delta;
   lastHeading.value = newHeading;
-  
   return accumulatedRotation.value;
 };
 
@@ -283,96 +276,43 @@ const angleDifference = computed(() => {
   return diff;
 });
 
-// 对准检测 - 使用更宽松的阈值减少抖动
-const isAligned = computed(() => {
-  return Math.abs(angleDifference.value) <= 5;
-});
-
-// 视觉提示的对准检测 - 使用更宽的范围
-const isVisuallyAligned = computed(() => {
-  return Math.abs(angleDifference.value) <= 8;
-});
-
-// 稳定对准状态
-const isStableAligned = computed(() => {
-  alignedHistory.value.push(isAligned.value);
-  
-  if (alignedHistory.value.length > STABILITY_CHECKS) {
-    alignedHistory.value.shift();
-  }
-  
-  if (alignedHistory.value.length < STABILITY_CHECKS) {
-    return false;
-  }
-  
-  return alignedHistory.value.every(v => v === true);
-});
+// 对准检测
+const isAligned = computed(() => Math.abs(angleDifference.value) <= 5);
 
 let orientationHandler = null;
 
-// 处理设备方向事件
 const handleOrientation = (event) => {
   let heading = null;
-  
-  // iOS 设备
   if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
     heading = event.webkitCompassHeading;
     sensorType.value = 'iOS Compass';
-  }
-  // Android 绝对方向（优先）
-  else if (event.absolute && event.alpha !== null) {
+  } else if (event.absolute && event.alpha !== null) {
     heading = event.alpha;
     sensorType.value = 'Android Absolute';
-    
-    // Android的alpha是设备顶部相对于正北的角度
-    // 需要根据具体厂商进行调整
-    if (isXiaomi) {
-      // 小米部分型号需要反转
-      heading = 360 - heading;
-      sensorType.value += ' (Xiaomi)';
-    } else if (isHuawei) {
-      // 华为设备通常符合标准
-      sensorType.value += ' (Huawei)';
-    } else if (isOppo || isVivo) {
-      // Oppo/Vivo某些型号可能需要调整
-      sensorType.value += ' (Oppo/Vivo)';
-    }
-  }
-  // Android 相对方向
-  else if (event.alpha !== null) {
+    if (isXiaomi) heading = 360 - heading;
+  } else if (event.alpha !== null) {
     heading = event.alpha;
     sensorType.value = 'Android Relative';
-    
-    if (isXiaomi) {
-      heading = 360 - heading;
-      sensorType.value += ' (Xiaomi)';
-    }
+    if (isXiaomi) heading = 360 - heading;
   }
   
   if (heading !== null) {
-    // 标准化heading到0-360范围（处理设备特定转换后可能出现的边界值）
     heading = heading % 360;
     if (heading < 0) heading += 360;
-    
-    // 更新累积旋转 - 使用标准化后的heading
     updateAccumulatedRotation(heading);
-    
     rawHeading.value = heading;
     smoothedHeading.value = smoothHeading(heading);
   }
 };
 
-// 请求权限（iOS 13+需要）
 const requestPermission = async () => {
-  if (typeof DeviceOrientationEvent !== 'undefined' && 
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
     needsPermission.value = true;
     try {
       const permission = await DeviceOrientationEvent.requestPermission();
       hasPermission.value = permission === 'granted';
       return permission === 'granted';
     } catch (error) {
-      console.error('Permission request failed:', error);
       hasPermission.value = false;
       return false;
     }
@@ -380,36 +320,34 @@ const requestPermission = async () => {
   return true;
 };
 
-// 启动罗盘
+const toggleCompass = () => {
+  if (isActive.value) {
+    stopCompass();
+  } else {
+    startCompass();
+  }
+};
+
 const startCompass = async () => {
   if (typeof DeviceOrientationEvent === 'undefined') {
     isSupported.value = false;
     return;
   }
-
   const hasPermissionNow = await requestPermission();
-  if (!hasPermissionNow) {
-    return;
-  }
+  if (!hasPermissionNow) return;
 
-  // 重置
   headingHistory.value = [];
-  alignedHistory.value = [];
   rawHeading.value = 0;
   smoothedHeading.value = 0;
   accumulatedRotation.value = 0;
   lastHeading.value = null;
   
-  // 更新屏幕方向
   getScreenOrientation();
-
   orientationHandler = handleOrientation;
   
-  // 同时监听两种事件
   window.addEventListener('deviceorientationabsolute', orientationHandler, true);
   window.addEventListener('deviceorientation', orientationHandler, true);
   
-  // 监听屏幕方向变化
   if (window.screen && window.screen.orientation) {
     window.screen.orientation.addEventListener('change', getScreenOrientation);
   }
@@ -418,7 +356,6 @@ const startCompass = async () => {
   isActive.value = true;
 };
 
-// 停止罗盘
 const stopCompass = () => {
   if (orientationHandler) {
     window.removeEventListener('deviceorientationabsolute', orientationHandler, true);
@@ -433,15 +370,12 @@ const stopCompass = () => {
   
   isActive.value = false;
   headingHistory.value = [];
-  alignedHistory.value = [];
 };
 
 onMounted(() => {
   if (typeof DeviceOrientationEvent === 'undefined') {
     isSupported.value = false;
   }
-  
-  // 获取屏幕方向
   getScreenOrientation();
 });
 
@@ -451,339 +385,74 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.compass-container {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  padding: 20px;
-  margin: 20px 0;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+.compass-card {
+  background: linear-gradient(160deg, var(--reading-bg) 0%, var(--bg-surface) 65%);
+  border: 1px solid var(--border); border-radius: 20px; padding: 24px 20px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--shadow-card);
+  animation: fadeUp 0.6s ease 0.3s both;
+  transition: background 0.45s, border-color 0.35s, box-shadow 0.35s;
 }
-
-.compass-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.compass-header h3 {
-  color: white;
-  margin: 0;
-  font-size: 18px;
-}
-
-.start-button, .stop-button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.start-button {
-  background: #4caf50;
-  color: white;
-}
-
-.start-button:hover {
-  background: #45a049;
-  transform: scale(1.05);
-}
-
-.stop-button {
-  background: #f44336;
-  color: white;
-}
-
-.stop-button:hover {
-  background: #da190b;
-  transform: scale(1.05);
+.compass-card::before {
+  content: ''; position: absolute; top:-40%; left:50%; transform:translateX(-50%);
+  width:80%; height:80%;
+  background: radial-gradient(ellipse, var(--compass-glow) 0%, transparent 70%);
+  pointer-events: none; transition: background 0.45s;
 }
 
 .error-message {
-  color: #ffeb3b;
-  text-align: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  font-size: 14px;
+  color: var(--amber); text-align: center; padding: 20px;
+  background: var(--bg-surface-2); border-radius: 8px; font-size: 14px;
 }
 
-.compass-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
+.compass-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+.compass-title {
+  font-family: var(--font-display); font-size: 11px; letter-spacing: 0.18em;
+  color: var(--text-secondary); text-transform: uppercase; transition: color 0.35s;
 }
 
-.compass-wrapper {
-  position: relative;
-  width: 300px;
-  height: 300px;
+.btn-start-compass {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--cyan-dim); border: 1px solid var(--border-hover);
+  border-radius: 8px; padding: 6px 12px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+  color: var(--cyan); cursor: pointer; text-transform: uppercase;
+  transition: all 0.25s;
 }
+.btn-start-compass:hover { box-shadow: 0 0 16px var(--cyan-dim); border-color: var(--cyan); }
+.btn-start-compass.active { background: var(--cyan); color: var(--calc-btn-color); font-weight: 700; }
 
-.compass-circle {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, #fff 0%, #f5f5f5 100%);
-  border-radius: 50%;
-  box-shadow: 
-    0 0 30px rgba(0, 0, 0, 0.2),
-    inset 0 0 20px rgba(0, 0, 0, 0.05);
-}
+.compass-wrap { display: flex; justify-content: center; margin: 10px 0 20px; }
+.compass-svg-container { width: 220px; height: 220px; }
+#compassSvg { width: 100%; height: 100%; filter: drop-shadow(0 0 20px var(--compass-glow)); transition: filter 0.4s; }
+#needleGroup { transform-origin: 110px 110px; transition: transform 0.6s cubic-bezier(0.34,1.56,0.64,1); }
 
-/* 刻度 */
-.degree-marks {
-  position: absolute;
-  width: 100%;
-  height: 100%;
+.compass-readings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px; }
+.reading-item {
+  background: var(--reading-bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; text-align: center;
+  transition: background 0.4s, border-color 0.35s;
 }
+.reading-label {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.15em;
+  color: var(--text-secondary); text-transform: uppercase; margin-bottom: 5px; transition: color 0.35s;
+}
+.reading-value { font-family: var(--font-mono); font-size: 18px; font-weight: 500; line-height: 1; }
+.reading-value.target { color: var(--cyan); text-shadow: 0 0 12px var(--cyan-dim); }
+.reading-value.current { color: var(--text-primary); }
+.reading-value.delta-left { color: var(--amber); }
+.reading-value.delta-aligned { color: var(--green); text-shadow: 0 0 12px rgba(16,185,129,0.4); }
 
-.degree-mark {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
+.turn-indicator {
+  margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+  color: var(--amber); animation: pulse-amber 1.5s ease-in-out infinite; text-transform: uppercase;
 }
+.turn-arrow { font-size: 18px; animation: bounce-horiz 1s ease-in-out infinite; }
+.turn-arrow.turn-right { transform: scaleX(-1); animation: bounce-horiz-rev 1s ease-in-out infinite; }
 
-.mark-line {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  width: 2px;
-  height: 8px;
-  background: #ccc;
-  transform: translateX(-50%);
-}
-
-.mark-line.major {
-  height: 12px;
-  width: 2px;
-  background: #999;
-}
-
-/* 方向标记 */
-.direction-label {
-  position: absolute;
-  font-weight: bold;
-  font-size: 24px;
-  color: #333;
-}
-
-.direction-label.north {
-  top: 25px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #e74c3c;
-  font-size: 28px;
-}
-
-.direction-label.east {
-  right: 25px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.direction-label.south {
-  bottom: 25px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.direction-label.west {
-  left: 25px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* 目标方位指示器 */
-.target-indicator {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  transform-origin: center;
-  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.target-wedge {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-top: 80px solid rgba(76, 175, 80, 0.3);
-  transform: translateX(-50%);
-}
-
-.target-label {
-  position: absolute;
-  top: 50px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #4caf50;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-/* 设备方向指针 */
-.device-needle {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  transform-origin: center;
-  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  pointer-events: none;
-  will-change: transform;
-}
-
-.device-needle.aligned .needle-head {
-  background: linear-gradient(to bottom, #4caf50, #45a049);
-  box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
-}
-
-.needle-head {
-  position: absolute;
-  top: 30px;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-  border-bottom: 100px solid #e74c3c;
-  transform: translateX(-50%);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  transition: all 0.3s ease;
-}
-
-.needle-tail {
-  position: absolute;
-  bottom: 30px;
-  left: 50%;
-  width: 8px;
-  height: 50px;
-  background: #999;
-  transform: translateX(-50%);
-  border-radius: 4px;
-}
-
-.center-point {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  background: #333;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  border: 3px solid white;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  z-index: 10;
-}
-
-/* 信息面板 */
-.info-panel {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 8px;
-  padding: 15px;
-  width: 300px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.info-row:last-of-type {
-  border-bottom: none;
-}
-
-.info-label {
-  color: #666;
-  font-weight: 500;
-}
-
-.info-value {
-  color: #333;
-  font-weight: 700;
-  font-size: 18px;
-}
-
-.info-value.target-color {
-  color: #4caf50;
-}
-
-.info-value.aligned-text {
-  color: #4caf50;
-  font-size: 20px;
-}
-
-.aligned-indicator {
-  margin-top: 10px;
-  padding: 12px;
-  background: #4caf50;
-  color: white;
-  border-radius: 6px;
-  text-align: center;
-  font-weight: 700;
-  animation: success-pulse 0.5s ease-in-out;
-}
-
-@keyframes success-pulse {
-  0% {
-    transform: scale(0.95);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.hint {
-  margin-top: 10px;
-  padding: 8px;
-  background: rgba(255, 152, 0, 0.1);
-  color: #ff9800;
-  border-radius: 6px;
-  text-align: center;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.hint.hint-close {
-  background: rgba(76, 175, 80, 0.15);
-  color: #4caf50;
-  font-weight: 700;
-}
-
-.debug-info {
-  margin-top: 10px;
-  padding: 8px;
-  background: #f5f5f5;
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: monospace;
-}
-
-.debug-row {
-  padding: 2px 0;
-  color: #666;
-}
+@keyframes pulse-amber { 0%,100%{opacity:1} 50%{opacity:0.45} }
+@keyframes bounce-horiz { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-4px)} }
+@keyframes bounce-horiz-rev { 0%,100%{transform:translateX(0) scaleX(-1)} 50%{transform:translateX(4px) scaleX(-1)} }
 </style>
