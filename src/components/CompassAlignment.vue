@@ -52,7 +52,7 @@
           <circle cx="110" cy="110" r="72" fill="none" stroke="var(--border)" stroke-width="1"/>
           <circle cx="110" cy="110" r="50" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 6"/>
           
-          <g id="needleGroup" :style="{ transform: `rotate(${-accumulatedRotation}deg)` }">
+          <g id="needleGroup" :style="{ transform: `rotate(${-renderRotation}deg)` }">
             <polygon points="110,38 107,110 113,110" fill="var(--amber)" filter="url(#nglow)" opacity="0.9"/>
             <polygon points="110,182 107,110 113,110" :fill="theme === 'dark' ? 'rgba(0,212,255,0.45)' : 'rgba(0,152,200,0.45)'"/>
             <circle cx="110" cy="110" r="7" :fill="theme === 'dark' ? '#0d1e35' : '#e4f0fa'" :stroke="theme === 'dark' ? 'rgba(0,212,255,0.6)' : 'rgba(0,152,200,0.6)'" stroke-width="1.5"/>
@@ -153,6 +153,21 @@ const rawHeading = ref(0);
 const smoothedHeading = ref(0);
 const sensorType = ref('');
 
+// 渲染旋转角度（用于平滑动画）
+const renderRotation = ref(0);
+let animationFrameId = null;
+
+const animateCompass = () => {
+  const diff = accumulatedRotation.value - renderRotation.value;
+  if (Math.abs(diff) > 0.05) {
+    // 使用 0.08 的平滑系数，数值越小越平滑但会有略微延迟，0.08 是很好的响应性平衡点
+    renderRotation.value += diff * 0.08;
+  } else {
+    renderRotation.value = accumulatedRotation.value;
+  }
+  animationFrameId = requestAnimationFrame(animateCompass);
+};
+
 // Computed Ticks for SVG
 const ticks = computed(() => {
   const t = [];
@@ -213,7 +228,7 @@ const lastHeading = ref(null);
 
 // 平滑处理
 const headingHistory = ref([]);
-const SMOOTHING_WINDOW = 8;
+const SMOOTHING_WINDOW = 20;
 const SMOOTHING_THRESHOLD = 0.5;
 
 // 稳定对准检测
@@ -256,6 +271,7 @@ const updateAccumulatedRotation = (newHeading) => {
   if (lastHeading.value === null) {
     lastHeading.value = newHeading;
     accumulatedRotation.value = newHeading;
+    renderRotation.value = newHeading; // Initialize instantly
     return accumulatedRotation.value;
   }
   
@@ -340,6 +356,7 @@ const startCompass = async () => {
   rawHeading.value = 0;
   smoothedHeading.value = 0;
   accumulatedRotation.value = 0;
+  renderRotation.value = 0;
   lastHeading.value = null;
   
   getScreenOrientation();
@@ -354,6 +371,9 @@ const startCompass = async () => {
   window.addEventListener('orientationchange', getScreenOrientation);
   
   isActive.value = true;
+  if (!animationFrameId) {
+    animateCompass();
+  }
 };
 
 const stopCompass = () => {
@@ -370,6 +390,11 @@ const stopCompass = () => {
   
   isActive.value = false;
   headingHistory.value = [];
+  
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
 };
 
 onMounted(() => {
@@ -426,7 +451,7 @@ onUnmounted(() => {
 .compass-wrap { display: flex; justify-content: center; margin: 10px 0 20px; }
 .compass-svg-container { width: 220px; height: 220px; }
 #compassSvg { width: 100%; height: 100%; filter: drop-shadow(0 0 20px var(--compass-glow)); transition: filter 0.4s; }
-#needleGroup { transform-origin: 110px 110px; transition: transform 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+#needleGroup { transform-origin: 110px 110px; }
 
 .compass-readings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px; }
 .reading-item {
