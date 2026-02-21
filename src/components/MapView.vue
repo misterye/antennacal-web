@@ -2,6 +2,9 @@
   <div class="map-container" :class="`map-theme-${theme}`">
     <div id="map"></div>
     <div class="south-indicator">{{ southText }}</div>
+    <div class="recenter-btn" @click="recenterMap" :title="recenterText">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+    </div>
   </div>
 </template>
 
@@ -42,20 +45,32 @@ const southText = computed(() => {
   return props.language === 'zh' ? '向下为正南' : 'South ↓';
 });
 
+const recenterText = computed(() => {
+  return props.language === 'zh' ? '回到小站位置' : 'Recenter Map';
+});
+
+const recenterMap = () => {
+  if (!map) return;
+  const lat = parseFloat(props.latitude);
+  const lng = parseFloat(props.longitude);
+  if (!isNaN(lat) && !isNaN(lng)) {
+    map.flyTo([lat, lng], map.getZoom());
+  }
+};
+
 // 创建带动画脉冲的箭头图标
 const createArrowIcon = (rotation) => {
   const color = props.theme === 'dark' ? '#00d4ff' : '#0098c8';
-  const shadowFilter = props.theme === 'dark' 
-    ? `<filter id="shadow"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>`
-    : `<filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/></filter>`;
+  const shadowCss = props.theme === 'dark' 
+    ? `drop-shadow(0px 0px 4px rgba(0, 212, 255, 0.7))`
+    : `drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.4))`;
   
   const arrowSvg = `
     <div class="map-pulse-container">
       <div class="map-pulse" style="border-color: ${color}"></div>
       <div class="map-pulse" style="border-color: ${color}; animation-delay: 0.8s"></div>
-      <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" style="position:relative; z-index:2">
-        <defs>${shadowFilter}</defs>
-        <g transform="rotate(${rotation} 25 25)" filter="url(#shadow)">
+      <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" style="position:relative; z-index:2; filter: ${shadowCss};">
+        <g transform="rotate(${rotation} 25 25)">
           <path d="M 25 5 L 12 25 L 22 20 L 22 45 L 28 45 L 28 20 L 38 25 Z" fill="${color}"/>
         </g>
       </svg>
@@ -169,6 +184,34 @@ watch(() => props.theme, (newTheme) => {
   border: 1px solid var(--border);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+.recenter-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--bg-surface-2);
+  padding: 8px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+  z-index: 1000;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.recenter-btn:hover {
+  background: var(--bg-surface);
+  color: var(--cyan);
+  border-color: var(--border-hover);
+}
+.recenter-btn:active {
+  transform: scale(0.95);
 }
 
 /* Override Map Tile filter for dark mode using the map-theme-dark class */
