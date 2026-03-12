@@ -93,6 +93,8 @@ const initMap = () => {
 
   if (map) {
     map.remove();
+    map = null;
+    marker = null;
   }
 
   map = L.map('map', { zoomControl: false }).setView([lat, lng], 13);
