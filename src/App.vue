@@ -489,6 +489,13 @@ const handleCalculate = (e) => {
   width: 100%;
 }
 
+.calculator-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
 /* =============================================
    HEADER
    ============================================= */
