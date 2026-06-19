@@ -3,7 +3,13 @@
     <!-- HEADER -->
     <header class="header">
       <div class="header-left">
-        <div class="header-icon">
+        <button v-if="showDisclaimer" class="btn-header-back" @click="showDisclaimer = false" :title="t.disclaimerBack" aria-label="返回">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <div v-else class="header-icon">
           <svg viewBox="0 0 32 32" fill="none">
             <circle cx="16" cy="16" r="4" stroke="var(--cyan)" stroke-width="1.5"/>
             <path d="M16 4L16 12M16 20L16 28M4 16L12 16M20 16L28 16" stroke="var(--cyan)" stroke-width="1.5" stroke-linecap="round"/>
@@ -11,7 +17,7 @@
             <circle cx="16" cy="16" r="10" stroke="var(--cyan)" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
           </svg>
         </div>
-        <span class="header-title">{{ t.title }}</span>
+        <span class="header-title">{{ showDisclaimer ? t.disclaimerTitle : t.title }}</span>
       </div>
       <div class="header-right">
         <span class="signal-dot"></span>
@@ -28,151 +34,213 @@
     </header>
 
     <div class="container main">
-      <!-- Satellite Select -->
-      <div class="card stagger-1" style="z-index: 50; position: relative;">
-        <div class="card-label">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-          {{ t.satelliteSelect }}
-        </div>
-        <div class="sat-selector-wrapper" ref="comboboxRef">
-          <div class="sat-combobox-input-wrap" :class="{ open: dropdownOpen, focused: dropdownOpen }" @click="toggleDropdown">
-            <input ref="searchInputRef" type="text" class="sat-selector" v-model="searchQuery" :placeholder="dropdownOpen ? t.searchPlaceholder : ''" @focus="openDropdown" @input="openDropdown" @keydown.down.prevent="highlightNext" @keydown.up.prevent="highlightPrev" @keydown.enter.prevent="selectHighlighted" @keydown.esc="closeDropdown" autocomplete="off" spellcheck="false" />
-            <span class="sat-combobox-selected-display" v-if="!dropdownOpen" :title="selectedSatelliteName">{{ selectedSatelliteName }}</span>
-            <span class="sat-selector-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-            </span>
+      <div v-if="!showDisclaimer" class="calculator-view">
+        <!-- Satellite Select -->
+        <div class="card stagger-1" style="z-index: 50; position: relative;">
+          <div class="card-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+            {{ t.satelliteSelect }}
           </div>
-          <ul v-if="dropdownOpen && filteredSatellites.length > 0" class="sat-combobox-list" ref="listRef">
-            <li v-for="(item, index) in filteredSatellites" :key="item.name" class="sat-combobox-item" :class="{ highlighted: index === highlightedIndex, selected: item.name === selectedSatelliteName }" @mousedown.prevent="selectItem(item.name)" @mousemove="highlightedIndex = index" :title="item.name">
-              <span class="sat-item-name">{{ item.name }}</span>
-              <span class="sat-item-pos">{{ item.pos }}</span>
-            </li>
-          </ul>
-          <div v-if="dropdownOpen && filteredSatellites.length === 0" class="sat-combobox-empty">{{ t.noResults }}</div>
+          <div class="sat-selector-wrapper" ref="comboboxRef">
+            <div class="sat-combobox-input-wrap" :class="{ open: dropdownOpen, focused: dropdownOpen }" @click="toggleDropdown">
+              <input ref="searchInputRef" type="text" class="sat-selector" v-model="searchQuery" :placeholder="dropdownOpen ? t.searchPlaceholder : ''" @focus="openDropdown" @input="openDropdown" @keydown.down.prevent="highlightNext" @keydown.up.prevent="highlightPrev" @keydown.enter.prevent="selectHighlighted" @keydown.esc="closeDropdown" autocomplete="off" spellcheck="false" />
+              <span class="sat-combobox-selected-display" v-if="!dropdownOpen" :title="selectedSatelliteName">{{ selectedSatelliteName }}</span>
+              <span class="sat-selector-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </div>
+            <ul v-if="dropdownOpen && filteredSatellites.length > 0" class="sat-combobox-list" ref="listRef">
+              <li v-for="(item, index) in filteredSatellites" :key="item.name" class="sat-combobox-item" :class="{ highlighted: index === highlightedIndex, selected: item.name === selectedSatelliteName }" @mousedown.prevent="selectItem(item.name)" @mousemove="highlightedIndex = index" :title="item.name">
+                <span class="sat-item-name">{{ item.name }}</span>
+                <span class="sat-item-pos">{{ item.pos }}</span>
+              </li>
+            </ul>
+            <div v-if="dropdownOpen && filteredSatellites.length === 0" class="sat-combobox-empty">{{ t.noResults }}</div>
+          </div>
+        </div>
+
+        <!-- Location Inputs -->
+        <div class="card stagger-2">
+          <div class="card-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            {{ t.stationLatitude }}/{{ t.stationLongitude }}
+          </div>
+          <div class="input-row" style="margin-bottom:12px">
+            <div class="input-group">
+              <input class="input-field" type="number" v-model="latitude" :placeholder="t.latitudePlaceholder" step="any" />
+              <label class="input-label">{{ t.stationLatitude }}</label>
+            </div>
+            <div class="input-group">
+              <input class="input-field" type="number" v-model="longitude" :placeholder="t.longitudePlaceholder" step="any" />
+              <label class="input-label">{{ t.stationLongitude }}</label>
+            </div>
+          </div>
+          <button class="btn-locate" @click="getLocation">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'spin': isLocating }"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+            {{ isLocating ? t.locationSuccess : t.getLocation }}
+          </button>
+        </div>
+
+        <!-- Calculate -->
+        <button class="btn-calculate stagger-3" @click="handleCalculate" :disabled="isCalculating">
+          <svg v-if="!isCalculating" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin"><path d="M21 12a9 9 0 11-18 0"/></svg>
+          {{ isCalculating ? '计算中...' : t.calculate }}
+        </button>
+
+        <!-- Results -->
+        <div class="card stagger-4">
+          <div class="card-label">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+             {{ t.results }}
+          </div>
+          <div v-if="!hasCalculated" class="results-placeholder">{{ t.resultsPlaceholder }}</div>
+          <div v-else class="results-grid" :class="{ 'calculating': isCalculating }">
+            <div class="metric-card">
+              <span class="metric-icon">🛸</span>
+              <div class="metric-label">{{ t.orbitalLongitude }}</div>
+              <div class="metric-value">{{ orbitalLongitude }}<span class="metric-unit"></span></div>
+            </div>
+            <div class="metric-card">
+              <span class="metric-icon">📐</span>
+              <div class="metric-label">{{ t.elevation }}</div>
+              <div class="metric-value">{{ elevation }}<span class="metric-unit"></span></div>
+            </div>
+            <div class="metric-card">
+              <span class="metric-icon">🧭</span>
+              <div class="metric-label">{{ t.azimuth }}</div>
+              <div class="metric-value">{{ azimuth }}<span class="metric-unit"></span></div>
+            </div>
+            <div class="metric-card">
+              <span class="metric-icon">🔄</span>
+              <div class="metric-label" style="text-transform: none;">{{ t.polarization }}</div>
+              <div class="metric-value">{{ polarization }}<span class="metric-unit"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Map -->
+        <div class="card stagger-5">
+          <div class="card-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
+            {{ t.mapTitle }}
+          </div>
+          <div class="map-wrapper">
+            <MapView :latitude="latitude" :longitude="longitude" :azimuth="azimuthValue" :language="currentLang" :theme="isDarkTheme ? 'dark' : 'light'" />
+          </div>
+        </div>
+
+        <!-- Satellite Info -->
+        <div class="card" v-if="currentSatInfo">
+          <div class="card-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            卫星详情
+          </div>
+          <div class="status-badge" v-if="currentSatInfo.status">
+            <span class="status-badge-dot" :class="{ 'active': currentSatInfo.status.toLowerCase().includes('active') }"></span>
+            {{ currentSatInfo.status }} · {{ currentSatInfo.orbit || 'GEO' }}
+          </div>
+          <div class="info-chips">
+            <div class="info-chip" v-if="currentSatInfo.vehicle">
+              <span class="info-chip-icon">🚀</span>
+              <span class="info-chip-label">{{ t.vehicle }}</span>
+              <span class="info-chip-value">{{ currentSatInfo.vehicle }}</span>
+            </div>
+            <div class="info-chip" v-if="currentSatInfo.platform">
+              <span class="info-chip-icon">📡</span>
+              <span class="info-chip-label">{{ t.platform }}</span>
+              <span class="info-chip-value">{{ currentSatInfo.platform }}</span>
+            </div>
+            <div class="info-chip" v-if="currentSatInfo.mass">
+              <span class="info-chip-icon">⚖️</span>
+              <span class="info-chip-label">{{ t.mass }}</span>
+              <span class="info-chip-value">{{ currentSatInfo.mass }} kg</span>
+            </div>
+            <div class="info-chip" v-if="currentSatInfo.launchDate">
+              <span class="info-chip-icon">📅</span>
+              <span class="info-chip-label">{{ t.launchDate }}</span>
+              <span class="info-chip-value">{{ currentSatInfo.launchDate }}</span>
+            </div>
+            <div class="info-chip" v-if="currentSatInfo.lifetime">
+              <span class="info-chip-icon">⏱️</span>
+              <span class="info-chip-label">{{ t.lifetime }}</span>
+              <span class="info-chip-value">{{ currentSatInfo.lifetime }}</span>
+            </div>
+            <div class="info-chip" v-if="currentSatInfo.operator">
+              <span class="info-chip-icon">🏢</span>
+              <span class="info-chip-label">{{ t.operator }}</span>
+              <span class="info-chip-value">{{ currentSatInfo.operator }}</span>
+            </div>
+          </div>
+          <div class="info-note" v-if="currentSatInfo.comments">
+            <span>💡</span>
+            <span>{{ currentLang === 'zh' ? (currentSatInfo.comments_zh || currentSatInfo.comments) : currentSatInfo.comments }}</span>
+          </div>
+        </div>
+
+        <!-- 实时罗盘对准 -->
+        <CompassAlignment v-if="azimuthValue > 0" :targetAzimuth="azimuthValue" :language="currentLang" :theme="isDarkTheme ? 'dark' : 'light'" />
+
+        <!-- Disclaimer Card at the very bottom -->
+        <div class="card card-interactive disclaimer-card stagger-6" @click="showDisclaimer = true">
+          <div class="disclaimer-card-content">
+            <div class="disclaimer-card-icon">🛡️</div>
+            <div class="disclaimer-card-text-wrap">
+              <div class="disclaimer-card-title">{{ t.disclaimerCardTitle }}</div>
+              <div class="disclaimer-card-desc">{{ t.disclaimerCardDesc }}</div>
+            </div>
+            <div class="disclaimer-card-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Location Inputs -->
-      <div class="card stagger-2">
-        <div class="card-label">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          {{ t.stationLatitude }}/{{ t.stationLongitude }}
-        </div>
-        <div class="input-row" style="margin-bottom:12px">
-          <div class="input-group">
-            <input class="input-field" type="number" v-model="latitude" :placeholder="t.latitudePlaceholder" step="any" />
-            <label class="input-label">{{ t.stationLatitude }}</label>
+      <!-- Disclaimer Details View -->
+      <div v-else class="disclaimer-view">
+        <div class="card disclaimer-details-card">
+          <div class="disclaimer-header">
+            <span class="disclaimer-icon">🛡️</span>
+            <h2>{{ t.disclaimerTitle }}</h2>
           </div>
-          <div class="input-group">
-            <input class="input-field" type="number" v-model="longitude" :placeholder="t.longitudePlaceholder" step="any" />
-            <label class="input-label">{{ t.stationLongitude }}</label>
+          
+          <div class="disclaimer-body">
+            <div class="disclaimer-section">
+              <h3>{{ t.disclaimerContent.title1 }}</h3>
+              <p>{{ t.disclaimerContent.desc1 }}</p>
+            </div>
+            
+            <div class="disclaimer-section">
+              <h3>{{ t.disclaimerContent.title2 }}</h3>
+              <p>{{ t.disclaimerContent.desc2 }}</p>
+            </div>
+            
+            <div class="disclaimer-section">
+              <h3>{{ t.disclaimerContent.title3 }}</h3>
+              <p>{{ t.disclaimerContent.desc3 }}</p>
+            </div>
+            
+            <div class="disclaimer-section">
+              <h3>{{ t.disclaimerContent.title4 }}</h3>
+              <p>{{ t.disclaimerContent.desc4 }}</p>
+            </div>
+          </div>
+          
+          <div class="disclaimer-footer">
+            <p>{{ t.disclaimerContent.footer }}</p>
           </div>
         </div>
-        <button class="btn-locate" @click="getLocation">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'spin': isLocating }"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-          {{ isLocating ? t.locationSuccess : t.getLocation }}
+
+        <button class="btn-back" @click="showDisclaimer = false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          {{ t.disclaimerBack }}
         </button>
       </div>
-
-      <!-- Calculate -->
-      <button class="btn-calculate stagger-3" @click="handleCalculate" :disabled="isCalculating">
-        <svg v-if="!isCalculating" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin"><path d="M21 12a9 9 0 11-18 0"/></svg>
-        {{ isCalculating ? '计算中...' : t.calculate }}
-      </button>
-
-      <!-- Results -->
-      <div class="card stagger-4">
-        <div class="card-label">
-           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-           {{ t.results }}
-        </div>
-        <div v-if="!hasCalculated" class="results-placeholder">{{ t.resultsPlaceholder }}</div>
-        <div v-else class="results-grid" :class="{ 'calculating': isCalculating }">
-          <div class="metric-card">
-            <span class="metric-icon">🛸</span>
-            <div class="metric-label">{{ t.orbitalLongitude }}</div>
-            <div class="metric-value">{{ orbitalLongitude }}<span class="metric-unit"></span></div>
-          </div>
-          <div class="metric-card">
-            <span class="metric-icon">📐</span>
-            <div class="metric-label">{{ t.elevation }}</div>
-            <div class="metric-value">{{ elevation }}<span class="metric-unit"></span></div>
-          </div>
-          <div class="metric-card">
-            <span class="metric-icon">🧭</span>
-            <div class="metric-label">{{ t.azimuth }}</div>
-            <div class="metric-value">{{ azimuth }}<span class="metric-unit"></span></div>
-          </div>
-          <div class="metric-card">
-            <span class="metric-icon">🔄</span>
-            <div class="metric-label" style="text-transform: none;">{{ t.polarization }}</div>
-            <div class="metric-value">{{ polarization }}<span class="metric-unit"></span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Map -->
-      <div class="card stagger-5">
-        <div class="card-label">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
-          {{ t.mapTitle }}
-        </div>
-        <div class="map-wrapper">
-          <MapView :latitude="latitude" :longitude="longitude" :azimuth="azimuthValue" :language="currentLang" :theme="isDarkTheme ? 'dark' : 'light'" />
-        </div>
-      </div>
-
-      <!-- Satellite Info -->
-      <div class="card" v-if="currentSatInfo">
-        <div class="card-label">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          卫星详情
-        </div>
-        <div class="status-badge" v-if="currentSatInfo.status">
-          <span class="status-badge-dot" :class="{ 'active': currentSatInfo.status.toLowerCase().includes('active') }"></span>
-          {{ currentSatInfo.status }} · {{ currentSatInfo.orbit || 'GEO' }}
-        </div>
-        <div class="info-chips">
-          <div class="info-chip" v-if="currentSatInfo.vehicle">
-            <span class="info-chip-icon">🚀</span>
-            <span class="info-chip-label">{{ t.vehicle }}</span>
-            <span class="info-chip-value">{{ currentSatInfo.vehicle }}</span>
-          </div>
-          <div class="info-chip" v-if="currentSatInfo.platform">
-            <span class="info-chip-icon">📡</span>
-            <span class="info-chip-label">{{ t.platform }}</span>
-            <span class="info-chip-value">{{ currentSatInfo.platform }}</span>
-          </div>
-          <div class="info-chip" v-if="currentSatInfo.mass">
-            <span class="info-chip-icon">⚖️</span>
-            <span class="info-chip-label">{{ t.mass }}</span>
-            <span class="info-chip-value">{{ currentSatInfo.mass }} kg</span>
-          </div>
-          <div class="info-chip" v-if="currentSatInfo.launchDate">
-            <span class="info-chip-icon">📅</span>
-            <span class="info-chip-label">{{ t.launchDate }}</span>
-            <span class="info-chip-value">{{ currentSatInfo.launchDate }}</span>
-          </div>
-          <div class="info-chip" v-if="currentSatInfo.lifetime">
-            <span class="info-chip-icon">⏱️</span>
-            <span class="info-chip-label">{{ t.lifetime }}</span>
-            <span class="info-chip-value">{{ currentSatInfo.lifetime }}</span>
-          </div>
-          <div class="info-chip" v-if="currentSatInfo.operator">
-            <span class="info-chip-icon">🏢</span>
-            <span class="info-chip-label">{{ t.operator }}</span>
-            <span class="info-chip-value">{{ currentSatInfo.operator }}</span>
-          </div>
-        </div>
-        <div class="info-note" v-if="currentSatInfo.comments">
-          <span>💡</span>
-          <span>{{ currentLang === 'zh' ? (currentSatInfo.comments_zh || currentSatInfo.comments) : currentSatInfo.comments }}</span>
-        </div>
-      </div>
-
-      <!-- 实时罗盘对准 -->
-      <CompassAlignment v-if="azimuthValue > 0" :targetAzimuth="azimuthValue" :language="currentLang" :theme="isDarkTheme ? 'dark' : 'light'" />
     </div>
   </div>
 </template>
@@ -200,6 +268,13 @@ const azimuthValue = ref(0);
 const isLocating = ref(false);
 const isCalculating = ref(false);
 const hasCalculated = ref(false);
+
+const showDisclaimer = ref(false);
+
+// Smooth scroll to top when toggling views
+watch(showDisclaimer, () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 // Combobox state
 const searchQuery = ref('');
@@ -716,4 +791,188 @@ const handleCalculate = (e) => {
 .stagger-3 { animation-delay: 0.15s; }
 .stagger-4 { animation-delay: 0.20s; }
 .stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+
+/* =============================================
+   DISCLAIMER CARD & BACK BUTTON
+   ============================================= */
+.card-interactive {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.card-interactive:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 8px 24px var(--cyan-dim), var(--shadow-card);
+  transform: translateY(-2px);
+}
+.card-interactive:active {
+  transform: translateY(0);
+}
+
+.disclaimer-card-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.disclaimer-card-icon {
+  font-size: 20px;
+  background: var(--cyan-dim);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  transition: border-color 0.3s;
+}
+.card-interactive:hover .disclaimer-card-icon {
+  border-color: var(--cyan);
+}
+.disclaimer-card-text-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.disclaimer-card-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+}
+.disclaimer-card-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.disclaimer-card-arrow {
+  color: var(--text-secondary);
+  transition: transform 0.3s, color 0.3s;
+  display: flex;
+  align-items: center;
+}
+.card-interactive:hover .disclaimer-card-arrow {
+  transform: translateX(4px);
+  color: var(--cyan);
+}
+
+.btn-header-back {
+  background: none;
+  border: none;
+  color: var(--cyan);
+  cursor: pointer;
+  padding: 6px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s, background-color 0.25s;
+  border-radius: 50%;
+}
+.btn-header-back:hover {
+  transform: translateX(-2px);
+  background-color: var(--cyan-dim);
+}
+.btn-header-back:active {
+  transform: translateX(-4px);
+}
+
+/* =============================================
+   DISCLAIMER VIEW
+   ============================================= */
+.disclaimer-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeUp 0.6s ease both;
+}
+.disclaimer-details-card {
+  padding: 24px;
+}
+.disclaimer-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.disclaimer-icon {
+  font-size: 28px;
+}
+.disclaimer-header h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+.disclaimer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.disclaimer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.disclaimer-section h3 {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-shadow: 0 0 10px var(--cyan-dim);
+}
+.disclaimer-section p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: justify;
+}
+.disclaimer-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.disclaimer-footer p {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.btn-back {
+  width: 100%;
+  padding: 13px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.25s;
+}
+.btn-back:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: var(--cyan-dim);
+}
+.btn-back:active {
+  transform: scale(0.98);
+}
 </style>
