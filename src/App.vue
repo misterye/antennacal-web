@@ -256,9 +256,9 @@ const satelliteNames = Object.keys(satelliteData);
 // Pre-build list with position for display
 const allSatellites = satelliteNames.map(name => ({ name, pos: satelliteData[name] }));
 
-const selectedSatelliteName = ref(satelliteNames[0]);
-const latitude = ref('31.24'); // Default to Shanghai Lujiazui
-const longitude = ref('121.50');
+const selectedSatelliteName = ref(localStorage.getItem('selectedSatelliteName') || satelliteNames[0]);
+const latitude = ref(localStorage.getItem('latitude') || '31.24'); // Default to Shanghai Lujiazui
+const longitude = ref(localStorage.getItem('longitude') || '121.50');
 const orbitalLongitude = ref('');
 const elevation = ref('');
 const azimuth = ref('');
@@ -274,6 +274,17 @@ const showDisclaimer = ref(false);
 // Smooth scroll to top when toggling views
 watch(showDisclaimer, () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Watch inputs to save to localStorage
+watch(selectedSatelliteName, (newVal) => {
+  localStorage.setItem('selectedSatelliteName', newVal);
+});
+watch(latitude, (newVal) => {
+  localStorage.setItem('latitude', newVal);
+});
+watch(longitude, (newVal) => {
+  localStorage.setItem('longitude', newVal);
 });
 
 // Combobox state
@@ -392,6 +403,11 @@ onMounted(() => {
     isDarkTheme.value = prefersDark;
   }
   setHtmlThemeAttr(isDarkTheme.value);
+
+  // 自动恢复上次的计算结果
+  if (localStorage.getItem('latitude') || localStorage.getItem('longitude') || localStorage.getItem('selectedSatelliteName')) {
+    runCalculation(false);
+  }
 });
 
 const toggleLanguage = () => {
@@ -425,6 +441,35 @@ const getLocation = () => {
   }
 };
 
+const runCalculation = (showAlert = false) => {
+  const latVal = parseFloat(latitude.value);
+  const lngVal = parseFloat(longitude.value);
+  
+  if (isNaN(latVal) || isNaN(lngVal)) {
+    if (showAlert) {
+      alert(t.value.invalidInput);
+    }
+    return;
+  }
+
+  const result = calculateParameters(
+    selectedSatelliteName.value,
+    latVal,
+    lngVal
+  );
+
+  if (result) {
+    orbitalLongitude.value = result.orbitalLongitude;
+    elevation.value = result.elevation;
+    azimuth.value = result.azimuth;
+    polarization.value = result.polarization;
+    azimuthValue.value = result.azimuthValue;
+    hasCalculated.value = true;
+  } else if (showAlert) {
+    alert(t.value.invalidInput);
+  }
+};
+
 const handleCalculate = (e) => {
   // Add Ripple effect
   if (e && e.target) {
@@ -443,24 +488,9 @@ const handleCalculate = (e) => {
   }
 
   isCalculating.value = true;
-  hasCalculated.value = true;
   
   setTimeout(() => {
-    const result = calculateParameters(
-      selectedSatelliteName.value,
-      parseFloat(latitude.value),
-      parseFloat(longitude.value)
-    );
-
-    if (result) {
-      orbitalLongitude.value = result.orbitalLongitude;
-      elevation.value = result.elevation;
-      azimuth.value = result.azimuth;
-      polarization.value = result.polarization;
-      azimuthValue.value = result.azimuthValue;
-    } else {
-      alert(t.value.invalidInput);
-    }
+    runCalculation(true);
     isCalculating.value = false;
   }, 800);
 };
