@@ -111,6 +111,8 @@ export const translations = {
         // 安卓应用下载
         androidDownloadCardTitle: '下载安卓客户端',
         androidDownloadCardDesc: '扫描二维码安装 Android 原生测试体验包',
+        webVersionCardTitle: '访问 Web 在线版',
+        webVersionCardDesc: 'https://sat.satelc.com',
         androidDownloadModalTitle: '安卓客户端下载',
         androidDownloadScanHint: '请使用微信或企业微信扫码下载',
         androidDownloadDisclaimerTitle: '开发阶段与免责提示',
@@ -237,6 +239,8 @@ export const translations = {
         // Android App Download
         androidDownloadCardTitle: 'Download Android App',
         androidDownloadCardDesc: 'Scan QR code to install Android native beta package',
+        webVersionCardTitle: 'Open Web Version',
+        webVersionCardDesc: 'https://sat.satelc.com',
         androidDownloadModalTitle: 'Android App Download',
         androidDownloadScanHint: 'Please scan the QR code with WeChat or WeCom to install',
         androidDownloadDisclaimerTitle: 'Development Phase & Disclaimer',

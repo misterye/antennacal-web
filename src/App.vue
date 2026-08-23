@@ -295,6 +295,22 @@
           </div>
         </div>
 
+        <!-- Web Version Entry Card (Only shown in Native App) -->
+        <div v-if="isNativeApp" class="card card-interactive web-card stagger-6" @click="openWebVersion">
+          <div class="disclaimer-card-content">
+            <div class="disclaimer-card-icon web-card-icon">🌐</div>
+            <div class="disclaimer-card-text-wrap">
+              <div class="disclaimer-card-title">{{ t.webVersionCardTitle }}</div>
+              <div class="disclaimer-card-desc">{{ t.webVersionCardDesc }}</div>
+            </div>
+            <div class="disclaimer-card-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+
         <!-- App Footer with Developer Email -->
         <footer class="app-footer stagger-6">
           <div class="footer-contact-box">
@@ -462,13 +478,20 @@
 
 <script setup>
 import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from 'vue';
+import { Capacitor } from '@capacitor/core';
 import { satelliteData, satelliteInfo, calculateParameters } from './utils/calculate';
 import { translations } from './utils/i18n';
 import { searchAdminRegions, chinaAdminRegions } from './utils/chinaAdminData';
 import MapView from './components/MapView.vue';
 import CompassAlignment from './components/CompassAlignment.vue';
 
+const isNativeApp = Capacitor.isNativePlatform();
 const showDownloadModal = ref(false);
+
+const openWebVersion = () => {
+  const url = 'https://sat.satelc.com';
+  window.open(url, '_system') || window.open(url, '_blank');
+};
 
 const satelliteNames = Object.keys(satelliteData);
 // Pre-build list with position for display
@@ -1712,6 +1735,14 @@ const handleCalculate = (e) => {
 }
 .card-interactive:hover .download-card-icon {
   border-color: var(--green) !important;
+}
+
+.web-card-icon {
+  background: rgba(0, 240, 255, 0.12) !important;
+  border-color: rgba(0, 240, 255, 0.3) !important;
+}
+.card-interactive:hover .web-card-icon {
+  border-color: var(--cyan) !important;
 }
 
 .modal-backdrop {
