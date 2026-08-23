@@ -16,3 +16,45 @@ export function searchAdminRegions(query, limit = 60) {
   }
   return results;
 }
+
+// 根据经纬度离线反查最近的行政区域（采用大圆距离算法 Haversine）
+export function findNearestAdminRegion(lat, lng, maxDistanceKm = 100) {
+  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+    return null;
+  }
+
+  const toRad = deg => (deg * Math.PI) / 180;
+  const R = 6371; // 地球半径 (km)
+  const phi1 = toRad(lat);
+  const cosPhi1 = Math.cos(phi1);
+
+  let nearestItem = null;
+  let minDistance = Infinity;
+
+  for (let i = 0; i < chinaAdminRegions.length; i++) {
+    const item = chinaAdminRegions[i];
+    const dLat = toRad(item.lat - lat);
+    const dLng = toRad(item.lng - lng);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      cosPhi1 * Math.cos(toRad(item.lat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const dist = R * c;
+
+    if (dist < minDistance) {
+      minDistance = dist;
+      nearestItem = item;
+    }
+  }
+
+  if (nearestItem && minDistance <= maxDistanceKm) {
+    return {
+      region: nearestItem,
+      distanceKm: Math.round(minDistance * 10) / 10
+    };
+  }
+
+  return null;
+}
+

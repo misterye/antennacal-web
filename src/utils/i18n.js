@@ -119,6 +119,13 @@ export const translations = {
         androidDownloadDisclaimerText: '该应用目前仍处在持续开发与内测阶段，暂未上架官方应用商店。安装与使用过程中的兼容性及相关风险由用户自行承担，开发者做全面免责声明。',
         closeModal: '关闭',
 
+        // 导出结果
+        exportResultCardTitle: '导出结果',
+        exportResultCardDesc: '生成并下载包含对准参数及卫星详情的精美图片',
+        exporting: '正在生成图片...',
+        exportSuccess: '图片已生成并开始下载',
+        exportFailed: '生成图片失败，请重试',
+        
         // 开发者联系方式
         developerContactTitle: '开发者联系方式',
         developerEmailLabel: '技术支持与商务联系：',
@@ -246,6 +253,13 @@ export const translations = {
         androidDownloadDisclaimerTitle: 'Development Phase & Disclaimer',
         androidDownloadDisclaimerText: 'This app is currently in continuous development and beta testing, and has not yet been listed on official app stores. Any compatibility risks are borne by the user, and the developer makes a full disclaimer.',
         closeModal: 'Close',
+
+        // Export Result
+        exportResultCardTitle: 'Export Result',
+        exportResultCardDesc: 'Generate and download a poster image with calculation results',
+        exporting: 'Generating image...',
+        exportSuccess: 'Image generated and download started',
+        exportFailed: 'Failed to generate image, please try again',
 
         // Developer Contact
         developerContactTitle: 'Developer Contact',

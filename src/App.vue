@@ -192,6 +192,27 @@
           </div>
         </div>
 
+        <!-- Export Result Card -->
+        <div v-if="hasCalculated" class="card card-interactive export-result-card stagger-4" @click="handleExportResult">
+          <div class="disclaimer-card-content">
+            <div class="disclaimer-card-icon export-card-icon">
+              <span v-if="!isExporting">🖼️</span>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin"><path d="M21 12a9 9 0 11-18 0"/></svg>
+            </div>
+            <div class="disclaimer-card-text-wrap">
+              <div class="disclaimer-card-title">{{ isExporting ? t.exporting : t.exportResultCardTitle }}</div>
+              <div class="disclaimer-card-desc">{{ t.exportResultCardDesc }}</div>
+            </div>
+            <div class="disclaimer-card-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </div>
+          </div>
+        </div>
+
         <!-- Map Card -->
         <div class="card stagger-5" :class="{ 'map-card-fullscreen': isMapFullscreen }" ref="mapCardRef">
           <div v-if="!isMapFullscreen" class="card-label">
@@ -481,7 +502,7 @@ import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { Capacitor } from '@capacitor/core';
 import { satelliteData, satelliteInfo, calculateParameters } from './utils/calculate';
 import { translations } from './utils/i18n';
-import { searchAdminRegions, chinaAdminRegions } from './utils/chinaAdminData';
+import { searchAdminRegions, chinaAdminRegions, findNearestAdminRegion } from './utils/chinaAdminData';
 import MapView from './components/MapView.vue';
 import CompassAlignment from './components/CompassAlignment.vue';
 
@@ -904,6 +925,452 @@ const handleCalculate = (e) => {
     runCalculation(true);
     isCalculating.value = false;
   }, 800);
+};
+
+// 智能反查坐标对应区域名称（本地库就近匹配 + 在线补充 + 优雅坐标兜底）
+const resolveLocationName = async (latNum, lngNum) => {
+  if (selectedRegionName.value && selectedRegionName.value.trim()) {
+    return selectedRegionName.value;
+  }
+
+  // 1. 本地大圆距离反查（≤ 80km 内视为有效就近区县/地市）
+  const match = findNearestAdminRegion(latNum, lngNum, 80);
+  if (match && match.region) {
+    const r = match.region;
+    const isZh = currentLang.value === 'zh';
+    if (match.distanceKm <= 5) {
+      return r.displayName;
+    } else {
+      return `${r.displayName} ${isZh ? '(附近)' : '(Near)'}`;
+    }
+  }
+
+  // 2. 在线 OSM 逆地理简易反查（超时 2 秒防卡顿）
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latNum}&lon=${lngNum}&zoom=10&accept-language=${currentLang.value === 'zh' ? 'zh-Hans,zh' : 'en'}`,
+      { signal: controller.signal, headers: { 'User-Agent': 'AntennaCal-App' } }
+    );
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.address) {
+        const addr = data.address;
+        const state = addr.state || addr.province || '';
+        const city = addr.city || addr.town || addr.county || addr.municipality || '';
+        const country = addr.country || '';
+        const namePart = [country, state, city].filter(Boolean).join(' ');
+        if (namePart) return namePart;
+      }
+    }
+  } catch (e) {
+    // 忽略在线超时或无网络异常
+  }
+
+  // 3. 优雅坐标兜底格式化
+  const latDir = latNum >= 0 ? (currentLang.value === 'zh' ? '北纬 ' : '') : (currentLang.value === 'zh' ? '南纬 ' : '');
+  const lngDir = lngNum >= 0 ? (currentLang.value === 'zh' ? '东经 ' : '') : (currentLang.value === 'zh' ? '西经 ' : '');
+  const latSuffix = currentLang.value === 'zh' ? '°' : (latNum >= 0 ? '°N' : '°S');
+  const lngSuffix = currentLang.value === 'zh' ? '°' : (lngNum >= 0 ? '°E' : '°W');
+  const absLat = Math.abs(latNum).toFixed(4);
+  const absLng = Math.abs(lngNum).toFixed(4);
+
+  return `${latDir}${absLat}${latSuffix}, ${lngDir}${absLng}${lngSuffix}`;
+};
+
+// 导出海报图片功能
+const isExporting = ref(false);
+
+const handleExportResult = async () => {
+  if (isExporting.value) return;
+  isExporting.value = true;
+  showToast(t.value.exporting);
+
+  try {
+    const W = 900;
+    const isDark = isDarkTheme.value;
+
+    // 颜色定义
+    const c = {
+      bg: isDark ? '#0a0e1a' : '#f4f7fc',
+      cardBg: isDark ? '#121829' : '#ffffff',
+      cardBorder: isDark ? '#1e293b' : '#e2e8f0',
+      primary: isDark ? '#00d4ff' : '#0284c7',
+      primaryDim: isDark ? 'rgba(0, 212, 255, 0.12)' : 'rgba(2, 132, 199, 0.08)',
+      textPrimary: isDark ? '#f0f4ff' : '#0f172a',
+      textSecondary: isDark ? '#94a3b8' : '#64748b',
+      textMuted: isDark ? '#64748b' : '#94a3b8',
+      amber: isDark ? '#f59e0b' : '#d97706',
+      amberDim: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(217, 119, 6, 0.08)',
+      green: isDark ? '#10b981' : '#059669',
+      greenDim: isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(5, 150, 105, 0.08)',
+      divider: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
+      pillBg: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc',
+    };
+
+    // 预计算高度
+    let H = 60; // 顶部间距
+    H += 110;   // Header
+    H += 150;   // Station & Satellite Input overview card
+    H += 270;   // Results 4-metrics grid card
+    if (currentSatInfo.value) {
+      H += 310; // Satellite Details card
+    }
+    H += 270;   // Footer & QR Card
+    H += 60;    // 底部间距
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // 辅助圆角矩形方法
+    const roundRect = (x, y, w, h, r) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    };
+
+    // 1. 绘制背景
+    ctx.fillStyle = c.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // 顶部微妙光晕
+    const glow = ctx.createRadialGradient(W / 2, 0, 10, W / 2, 0, 500);
+    glow.addColorStop(0, isDark ? 'rgba(0, 212, 255, 0.18)' : 'rgba(2, 132, 199, 0.12)');
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, 400);
+
+    let curY = 50;
+    const pad = 44;
+    const cardW = W - pad * 2;
+
+    // 2. 头部：Logo + 标题 + 副标题
+    // 绘制 Logo
+    try {
+      const logoImg = new Image();
+      logoImg.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => {
+        logoImg.onload = res;
+        logoImg.onerror = res; // 容错继续
+        logoImg.src = '/marker.png';
+      });
+      if (logoImg.width) {
+        ctx.drawImage(logoImg, pad, curY, 44, 44);
+      }
+    } catch (e) {}
+
+    ctx.fillStyle = c.primary;
+    ctx.font = 'bold 28px "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('AntennaCal · ' + (currentLang.value === 'zh' ? '寻星伴侣' : 'Satellite Finder'), pad + 56, curY + 28);
+
+    ctx.fillStyle = c.textSecondary;
+    ctx.font = '14px "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText(currentLang.value === 'zh' ? '卫星天线寻星对准参数精准计算' : 'Precision Satellite Dish Alignment Calculator', pad + 56, curY + 50);
+
+    // 右侧日期徽章
+    const nowStr = new Date().toLocaleDateString(currentLang.value === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    ctx.textAlign = 'right';
+    ctx.fillStyle = c.textMuted;
+    ctx.font = '13px "JetBrains Mono", monospace';
+    ctx.fillText(nowStr, W - pad, curY + 28);
+    ctx.textAlign = 'left';
+
+    curY += 80;
+
+    // 3. 地球站与目标卫星基础信息卡片
+    roundRect(pad, curY, cardW, 126, 16);
+    ctx.fillStyle = c.cardBg;
+    ctx.fill();
+    ctx.strokeStyle = c.cardBorder;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // 目标卫星信息（左半区）
+    ctx.fillStyle = c.primary;
+    ctx.font = 'bold 13px "DM Sans", "PingFang SC", sans-serif';
+    ctx.fillText('📡 ' + t.value.satelliteSelect.toUpperCase(), pad + 24, curY + 36);
+
+    ctx.fillStyle = c.textPrimary;
+    ctx.font = 'bold 20px "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif';
+    const satNameDisplay = selectedSatelliteName.value.length > 22 ? selectedSatelliteName.value.slice(0, 20) + '...' : selectedSatelliteName.value;
+    ctx.fillText(satNameDisplay, pad + 24, curY + 68);
+
+    ctx.fillStyle = c.textSecondary;
+    ctx.font = '13px "JetBrains Mono", monospace';
+    ctx.fillText((t.value.orbitalLongitude || 'Orbit') + ': ' + (satelliteData[selectedSatelliteName.value] || ''), pad + 24, curY + 96);
+
+    // 地球站坐标信息（右半区）
+    const midX = pad + cardW / 2 + 10;
+    ctx.strokeStyle = c.divider;
+    ctx.beginPath();
+    ctx.moveTo(pad + cardW / 2, curY + 20);
+    ctx.lineTo(pad + cardW / 2, curY + 106);
+    ctx.stroke();
+
+    ctx.fillStyle = c.amber;
+    ctx.font = 'bold 13px "DM Sans", "PingFang SC", sans-serif';
+    ctx.fillText('📍 ' + (currentLang.value === 'zh' ? '地面观测站位置' : 'GROUND STATION LOCATION').toUpperCase(), midX + 14, curY + 36);
+
+    ctx.fillStyle = c.textPrimary;
+    ctx.font = 'bold 18px "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif';
+    const latNum = parseFloat(latitude.value);
+    const lngNum = parseFloat(longitude.value);
+    const locNameRaw = await resolveLocationName(latNum, lngNum);
+    const locName = locNameRaw.length > 24 ? locNameRaw.slice(0, 22) + '...' : locNameRaw;
+    ctx.fillText(locName, midX + 14, curY + 68);
+
+    ctx.fillStyle = c.textSecondary;
+    ctx.font = '13px "JetBrains Mono", monospace';
+    ctx.fillText(`LAT: ${latitude.value}° | LNG: ${longitude.value}°`, midX + 14, curY + 96);
+
+    curY += 144;
+
+    // 4. 计算结果核心卡片（4项指标）
+    roundRect(pad, curY, cardW, 230, 16);
+    ctx.fillStyle = c.cardBg;
+    ctx.fill();
+    ctx.strokeStyle = c.cardBorder;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // 标题条
+    ctx.fillStyle = c.primary;
+    ctx.font = 'bold 14px "DM Sans", "PingFang SC", sans-serif';
+    ctx.fillText('📊 ' + t.value.results.toUpperCase() + ' (ALIGNMENT PARAMETERS)', pad + 24, curY + 36);
+
+    // 4个子网格卡片
+    const gridItemW = (cardW - 48 - 18) / 2;
+    const gridItemH = 74;
+    const metrics = [
+      { icon: '🛸', label: t.value.orbitalLongitude, val: orbitalLongitude.value },
+      { icon: '📐', label: t.value.elevation, val: elevation.value },
+      { icon: '🧭', label: t.value.azimuth, val: azimuth.value },
+      { icon: '🔄', label: t.value.polarization, val: polarization.value }
+    ];
+
+    metrics.forEach((m, idx) => {
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
+      const mx = pad + 24 + col * (gridItemW + 18);
+      const my = curY + 54 + row * (gridItemH + 14);
+
+      roundRect(mx, my, gridItemW, gridItemH, 10);
+      ctx.fillStyle = c.pillBg;
+      ctx.fill();
+      ctx.strokeStyle = c.cardBorder;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 图标 + 标签
+      ctx.font = '18px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+      ctx.fillText(m.icon, mx + 16, my + 44);
+
+      ctx.fillStyle = c.textSecondary;
+      ctx.font = '12px "DM Sans", "PingFang SC", sans-serif';
+      ctx.fillText(m.label, mx + 48, my + 30);
+
+      // 数值
+      ctx.fillStyle = c.primary;
+      ctx.font = 'bold 20px "JetBrains Mono", "Orbitron", monospace';
+      ctx.fillText(m.val || '--', mx + 48, my + 56);
+    });
+
+    curY += 250;
+
+    // 5. 卫星详细参数卡片（如果存在）
+    if (currentSatInfo.value) {
+      const sat = currentSatInfo.value;
+      roundRect(pad, curY, cardW, 280, 16);
+      ctx.fillStyle = c.cardBg;
+      ctx.fill();
+      ctx.strokeStyle = c.cardBorder;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = c.primary;
+      ctx.font = 'bold 14px "DM Sans", "PingFang SC", sans-serif';
+      ctx.fillText('🛰️ ' + t.value.satelliteDetails.toUpperCase(), pad + 24, curY + 36);
+
+      // 状态徽章
+      if (sat.status) {
+        ctx.fillStyle = c.green;
+        ctx.font = 'bold 12px "JetBrains Mono", monospace';
+        ctx.fillText(`● ${sat.status.toUpperCase()} · ${sat.orbit || 'GEO'}`, pad + cardW - 160, curY + 36);
+      }
+
+      // 6项属性小胶囊
+      const chips = [
+        { icon: '🚀', label: t.value.vehicle, val: sat.vehicle },
+        { icon: '📡', label: t.value.platform, val: sat.platform },
+        { icon: '⚖️', label: t.value.mass, val: sat.mass ? `${sat.mass} kg` : '' },
+        { icon: '📅', label: t.value.launchDate, val: sat.launchDate },
+        { icon: '⏱️', label: t.value.lifetime, val: sat.lifetime },
+        { icon: '🏢', label: t.value.operator, val: sat.operator }
+      ].filter(item => !!item.val);
+
+      const chipW = (cardW - 48 - 18) / 2;
+      const chipH = 42;
+      chips.slice(0, 4).forEach((ch, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const cx = pad + 24 + col * (chipW + 18);
+        const cy = curY + 54 + row * (chipH + 10);
+
+        roundRect(cx, cy, chipW, chipH, 8);
+        ctx.fillStyle = c.pillBg;
+        ctx.fill();
+        ctx.strokeStyle = c.cardBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = c.textSecondary;
+        ctx.font = '12px "PingFang SC", "DM Sans", sans-serif';
+        ctx.fillText(`${ch.icon} ${ch.label}:`, cx + 12, cy + 26);
+
+        ctx.fillStyle = c.textPrimary;
+        ctx.font = 'bold 12px "JetBrains Mono", sans-serif';
+        const displayVal = ch.val.length > 20 ? ch.val.slice(0, 18) + '...' : ch.val;
+        ctx.fillText(displayVal, cx + 110, cy + 26);
+      });
+
+      // 备注说明栏
+      const commentsText = currentLang.value === 'zh' ? (sat.comments_zh || sat.comments) : sat.comments;
+      if (commentsText) {
+        const noteY = curY + 168;
+        roundRect(pad + 24, noteY, cardW - 48, 86, 8);
+        ctx.fillStyle = c.amberDim;
+        ctx.fill();
+        ctx.strokeStyle = isDark ? 'rgba(245, 158, 11, 0.25)' : 'rgba(217, 119, 6, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = c.amber;
+        ctx.font = '12px "PingFang SC", "DM Sans", sans-serif';
+        ctx.fillText('💡 ' + (currentLang.value === 'zh' ? '卫星背景说明：' : 'Satellite Notes:'), pad + 38, noteY + 26);
+
+        ctx.fillStyle = c.textPrimary;
+        ctx.font = '12px "PingFang SC", "DM Sans", sans-serif';
+        // 自动折行
+        const maxLineWidth = cardW - 76;
+        let line = '';
+        let lineY = noteY + 48;
+        for (let n = 0; n < commentsText.length; n++) {
+          const testLine = line + commentsText[n];
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxLineWidth && n > 0) {
+            ctx.fillText(line, pad + 38, lineY);
+            line = commentsText[n];
+            lineY += 18;
+            if (lineY > noteY + 76) {
+              line += '...';
+              break;
+            }
+          } else {
+            line = testLine;
+          }
+        }
+        ctx.fillText(line, pad + 38, lineY);
+      }
+
+      curY += 300;
+    }
+
+    // 6. 底部卡片：包含二维码、Web版地址、开发者邮箱
+    roundRect(pad, curY, cardW, 230, 16);
+    ctx.fillStyle = c.cardBg;
+    ctx.fill();
+    ctx.strokeStyle = c.cardBorder;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // 绘制二维码
+    const qrSize = 150;
+    const qrX = pad + 32;
+    const qrY = curY + 40;
+
+    roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 12);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = c.cardBorder;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    try {
+      const qrImg = new Image();
+      qrImg.crossOrigin = 'anonymous';
+      await new Promise((res) => {
+        qrImg.onload = res;
+        qrImg.onerror = res;
+        qrImg.src = '/android_apk_download.png';
+      });
+      if (qrImg.width) {
+        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+      }
+    } catch (e) {}
+
+    // 右侧链接与联系信息
+    const infoX = qrX + qrSize + 36;
+    let textY = curY + 54;
+
+    // 标题：扫码下载安卓客户端
+    ctx.fillStyle = c.textPrimary;
+    ctx.font = 'bold 16px "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText('📱 ' + (currentLang.value === 'zh' ? '安卓客户端扫码下载' : 'Scan to Download Android App'), infoX, textY);
+
+    textY += 26;
+    ctx.fillStyle = c.textSecondary;
+    ctx.font = '13px "PingFang SC", "DM Sans", sans-serif';
+    ctx.fillText(currentLang.value === 'zh' ? '内测体验包 · 支持微信/浏览器扫码' : 'Beta build · WeChat or Browser scan', infoX, textY);
+
+    textY += 38;
+    // Web 版地址
+    ctx.fillStyle = c.primary;
+    ctx.font = 'bold 14px "DM Sans", "PingFang SC", sans-serif';
+    ctx.fillText('🌐 ' + (currentLang.value === 'zh' ? 'Web 在线版地址：' : 'Web Online URL:'), infoX, textY);
+
+    textY += 22;
+    ctx.fillStyle = c.textPrimary;
+    ctx.font = 'bold 14px "JetBrains Mono", monospace';
+    ctx.fillText('https://sat.satelc.com', infoX, textY);
+
+    textY += 34;
+    // 开发者邮箱
+    ctx.fillStyle = c.amber;
+    ctx.font = 'bold 13px "DM Sans", "PingFang SC", sans-serif';
+    ctx.fillText('✉️ ' + (currentLang.value === 'zh' ? '技术支持与商务联系：' : 'Support & Contact:'), infoX, textY);
+
+    textY += 20;
+    ctx.fillStyle = c.textSecondary;
+    ctx.font = '13px "JetBrains Mono", monospace';
+    ctx.fillText('kevin@satelc.com', infoX, textY);
+
+    // 7. 生成并触发图片下载
+    const dataUrl = canvas.toDataURL('image/png');
+    const fileName = `AntennaCal_${selectedSatelliteName.value.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.png`;
+
+    const link = document.createElement('a');
+    link.download = fileName;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast(t.value.exportSuccess);
+  } catch (err) {
+    console.error('Export image failed:', err);
+    showToast(t.value.exportFailed);
+  } finally {
+    isExporting.value = false;
+  }
 };
 </script>
 
@@ -1729,6 +2196,14 @@ const handleCalculate = (e) => {
 /* =============================================
    ANDROID DOWNLOAD MODAL
    ============================================= */
+.export-card-icon {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+.card-interactive:hover .export-card-icon {
+  border-color: var(--amber) !important;
+}
+
 .download-card-icon {
   background: rgba(16, 185, 129, 0.12) !important;
   border-color: rgba(16, 185, 129, 0.3) !important;
