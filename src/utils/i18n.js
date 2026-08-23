@@ -121,9 +121,10 @@ export const translations = {
 
         // 导出结果
         exportResultCardTitle: '导出结果',
-        exportResultCardDesc: '生成并下载包含对准参数及卫星详情的精美图片',
+        exportResultCardDesc: '生成并保存包含对准参数及卫星详情的精美图片',
         exporting: '正在生成图片...',
-        exportSuccess: '图片已生成并开始下载',
+        exportSuccess: '图片已生成并已保存/下载',
+        exportSavedToDocuments: '图片已保存至手机相册/文档目录',
         exportFailed: '生成图片失败，请重试',
         
         // 开发者联系方式
@@ -256,9 +257,10 @@ export const translations = {
 
         // Export Result
         exportResultCardTitle: 'Export Result',
-        exportResultCardDesc: 'Generate and download a poster image with calculation results',
+        exportResultCardDesc: 'Generate and save a poster image with calculation results',
         exporting: 'Generating image...',
-        exportSuccess: 'Image generated and download started',
+        exportSuccess: 'Image generated and saved/downloaded',
+        exportSavedToDocuments: 'Image saved to device documents/gallery',
         exportFailed: 'Failed to generate image, please try again',
 
         // Developer Contact

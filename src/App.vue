@@ -500,6 +500,8 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { satelliteData, satelliteInfo, calculateParameters } from './utils/calculate';
 import { translations } from './utils/i18n';
 import { searchAdminRegions, chinaAdminRegions, findNearestAdminRegion } from './utils/chinaAdminData';
@@ -1353,18 +1355,44 @@ const handleExportResult = async () => {
     ctx.font = '13px "JetBrains Mono", monospace';
     ctx.fillText('kevin@satelc.com', infoX, textY);
 
-    // 7. 生成并触发图片下载
+    // 7. 生成图片并保存/下载
     const dataUrl = canvas.toDataURL('image/png');
     const fileName = `AntennaCal_${selectedSatelliteName.value.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.png`;
 
-    const link = document.createElement('a');
-    link.download = fileName;
-    link.href = dataUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (Capacitor.isNativePlatform()) {
+      // 在原生 Android App 环境下，通过 Capacitor Filesystem 将图片写入本地存储
+      const base64Data = dataUrl.split(',')[1];
+      const savedFile = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Documents,
+        recursive: true
+      });
 
-    showToast(t.value.exportSuccess);
+      // 尝试调用系统原生分享或预览面板保存到相册/转发
+      try {
+        await Share.share({
+          title: 'AntennaCal 寻星对准计算结果',
+          text: `AntennaCal - ${selectedSatelliteName.value}`,
+          url: savedFile.uri,
+          dialogTitle: '保存或分享计算结果图片'
+        });
+      } catch (shareErr) {
+        // 用户取消分享或环境不支持时，展示已保存到文档提示
+        showToast(t.value.exportSavedToDocuments);
+        return;
+      }
+      showToast(t.value.exportSuccess);
+    } else {
+      // 浏览器 Web 端：触发常规 <a> 标签下载
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast(t.value.exportSuccess);
+    }
   } catch (err) {
     console.error('Export image failed:', err);
     showToast(t.value.exportFailed);
