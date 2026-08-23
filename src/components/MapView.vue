@@ -23,6 +23,7 @@
         :class="{ 'active': isPicking }" 
         @click="togglePickingMode()" 
         :title="isPicking ? exitPickingText : pickOnMapText"
+        type="button"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
@@ -36,7 +37,7 @@
       </button>
 
       <!-- 回到小站位置按钮 -->
-      <button class="map-btn map-btn-icon" @click="recenterMap" :title="recenterText">
+      <button class="map-btn map-btn-icon" @click="recenterMap" :title="recenterText" type="button">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
 
@@ -46,6 +47,7 @@
         :class="{ 'active': isFullscreen }" 
         @click="toggleFullscreen" 
         :title="isFullscreen ? exitFullscreenText : fullscreenText"
+        type="button"
       >
         <svg v-if="!isFullscreen" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 3 21 3 21 9"></polyline>
@@ -95,7 +97,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['select-location', 'update:location']);
+const emit = defineEmits(['select-location', 'update:location', 'fullscreen-change']);
 
 const mapContainerRef = ref(null);
 const isPicking = ref(false);
@@ -133,6 +135,16 @@ const exitFullscreenText = computed(() => {
   return props.language === 'zh' ? '退出全屏' : 'Exit Fullscreen';
 });
 
+const triggerResize = () => {
+  nextTick(() => {
+    if (map) {
+      map.invalidateSize();
+      setTimeout(() => map && map.invalidateSize(), 150);
+      setTimeout(() => map && map.invalidateSize(), 350);
+    }
+  });
+};
+
 const togglePickingMode = (forceState) => {
   if (typeof forceState === 'boolean') {
     isPicking.value = forceState;
@@ -141,20 +153,62 @@ const togglePickingMode = (forceState) => {
   }
 };
 
-const toggleFullscreen = () => {
-  isFullscreen.value = !isFullscreen.value;
-  nextTick(() => {
-    if (map) {
-      map.invalidateSize();
-      setTimeout(() => map && map.invalidateSize(), 200);
+const toggleFullscreen = async () => {
+  const container = mapContainerRef.value;
+  const isCurrentlyNativeFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+  if (!isFullscreen.value && !isCurrentlyNativeFs) {
+    isFullscreen.value = true;
+    emit('fullscreen-change', true);
+    if (container && container.requestFullscreen) {
+      try {
+        await container.requestFullscreen();
+      } catch (e) {
+        // Native requestFullscreen failed or blocked; fallback to CSS fullscreen
+      }
+    } else if (container && container.webkitRequestFullscreen) {
+      try {
+        await container.webkitRequestFullscreen();
+      } catch (e) {
+        // Fallback
+      }
     }
-  });
+  } else {
+    isFullscreen.value = false;
+    emit('fullscreen-change', false);
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        }
+      } catch (e) {
+        // Ignore exit error
+      }
+    }
+  }
+  triggerResize();
+};
+
+const onFullscreenChange = () => {
+  const isNativeFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  if (!isNativeFs && isFullscreen.value) {
+    // Exited from native escape
+    isFullscreen.value = false;
+    emit('fullscreen-change', false);
+  }
+  triggerResize();
 };
 
 const handleKeyDown = (e) => {
   if (e.key === 'Escape' && isFullscreen.value) {
     isFullscreen.value = false;
-    nextTick(() => map && map.invalidateSize());
+    emit('fullscreen-change', false);
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    triggerResize();
   }
 };
 
@@ -167,21 +221,66 @@ const recenterMap = () => {
   }
 };
 
-// 创建带动画脉冲的箭头图标
+// 创建醒目、高对比度、带雷达脉冲与小站中心的箭头图标
 const createArrowIcon = (rotation) => {
-  const color = props.theme === 'dark' ? '#00d4ff' : '#0098c8';
-  const shadowCss = props.theme === 'dark' 
-    ? `drop-shadow(0px 0px 4px rgba(0, 212, 255, 0.7))`
-    : `drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.4))`;
+  const isDark = props.theme === 'dark';
+  const primaryColor = isDark ? '#00f0ff' : '#0284c7';
+  const gradientStart = isDark ? '#00f0ff' : '#0ea5e9';
+  const gradientEnd = isDark ? '#0066ff' : '#1d4ed8';
+  const strokeColor = isDark ? '#030b17' : '#ffffff';
+  const centerDotColor = isDark ? '#00f0ff' : '#0284c7';
+  const roundedDeg = Math.round(rotation);
+
+  const shadowCss = isDark 
+    ? `drop-shadow(0px 0px 8px rgba(0, 240, 255, 0.9)) drop-shadow(0px 2px 5px rgba(0, 0, 0, 0.8))`
+    : `drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.45)) drop-shadow(0px 0px 4px rgba(2, 132, 199, 0.6))`;
   
   const arrowSvg = `
-    <div class="map-pulse-container">
-      <div class="map-pulse" style="border-color: ${color}"></div>
-      <div class="map-pulse" style="border-color: ${color}; animation-delay: 0.8s"></div>
-      <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" style="position:relative; z-index:2; filter: ${shadowCss};">
-        <g transform="rotate(${rotation} 25 25)">
-          <path d="M 25 5 L 12 25 L 22 20 L 22 45 L 28 45 L 28 20 L 38 25 Z" fill="${color}"/>
+    <div class="map-pulse-container" style="width: 70px; height: 70px;">
+      <!-- 双层雷达向外扩散脉冲 -->
+      <div class="map-pulse" style="border-color: ${primaryColor}; width: 54px; height: 54px;"></div>
+      <div class="map-pulse" style="border-color: ${primaryColor}; width: 54px; height: 54px; animation-delay: 0.9s;"></div>
+      
+      <svg width="70" height="70" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg" style="position:relative; z-index:2; filter: ${shadowCss};">
+        <defs>
+          <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${gradientStart}" />
+            <stop offset="100%" stop-color="${gradientEnd}" />
+          </linearGradient>
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="rgba(0,0,0,0.5)"/>
+          </filter>
+        </defs>
+
+        <!-- 围绕中心旋转的指向大箭头 -->
+        <g transform="rotate(${rotation} 35 35)">
+          <!-- 指向射线辅助虚线 -->
+          <line x1="35" y1="35" x2="35" y2="4" stroke="${primaryColor}" stroke-width="2.5" stroke-dasharray="3,3" opacity="0.75" />
+          
+          <!-- 醒目加粗主箭头体 (带高对比度描边与渐变填充) -->
+          <path 
+            d="M 35 4 L 18 30 L 30 24 L 30 46 L 40 46 L 40 24 L 52 30 Z" 
+            fill="url(#arrowGrad)" 
+            stroke="${strokeColor}" 
+            stroke-width="2.6" 
+            stroke-linejoin="round"
+            stroke-linecap="round"
+          />
+
+          <!-- 箭头高亮内脊线 -->
+          <path 
+            d="M 35 7 L 35 44" 
+            stroke="#ffffff" 
+            stroke-width="1.8" 
+            stroke-linecap="round" 
+            opacity="0.85" 
+          />
         </g>
+
+        <!-- 小站中心定位基准点 (独立于旋转) -->
+        <circle cx="35" cy="35" r="7" fill="${strokeColor}" />
+        <circle cx="35" cy="35" r="5" fill="${centerDotColor}" />
+        <circle cx="35" cy="35" r="2" fill="#ffffff" />
       </svg>
     </div>
   `;
@@ -189,8 +288,8 @@ const createArrowIcon = (rotation) => {
   return L.divIcon({
     className: 'custom-map-marker',
     html: arrowSvg,
-    iconSize: [50, 50],
-    iconAnchor: [25, 25]
+    iconSize: [70, 70],
+    iconAnchor: [35, 35]
   });
 };
 
@@ -268,10 +367,14 @@ const updateMarker = (shouldFly = false) => {
 onMounted(() => {
   initMap();
   window.addEventListener('keydown', handleKeyDown);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeyDown);
+  document.removeEventListener('fullscreenchange', onFullscreenChange);
+  document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
 });
 
 watch(() => [props.latitude, props.longitude], () => {
@@ -310,17 +413,31 @@ defineExpose({
   background-color: var(--map-bg-a);
   border-radius: 12px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
-/* 全屏模式样式 */
-.map-container.is-fullscreen {
-  position: fixed !important;
-  inset: 0 !important;
+/* 浏览器原生全屏伪类 */
+.map-container:fullscreen,
+.map-container:-webkit-full-screen {
   width: 100vw !important;
   height: 100vh !important;
   min-height: 100vh !important;
-  z-index: 99999 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* CSS 回退全屏模式样式 */
+.map-container.is-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  z-index: 999999 !important;
   border-radius: 0 !important;
   margin: 0 !important;
   box-shadow: none !important;
@@ -414,7 +531,7 @@ defineExpose({
   left: 10px;
   right: 10px;
   z-index: 1000;
-  background: rgba(10, 25, 47, 0.92);
+  background: rgba(10, 25, 47, 0.94);
   color: var(--cyan);
   border: 1px solid var(--cyan);
   padding: 6px 12px;
@@ -523,12 +640,12 @@ defineExpose({
 
 /* Custom Marker CSS Animation */
 :deep(.map-pulse-container) {
-  position: relative; width: 50px; height: 50px;
+  position: relative; width: 70px; height: 70px;
 }
 :deep(.map-pulse) {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: 40px; height: 40px; border-radius: 50%; border: 2px solid; opacity: 0;
-  animation: map-ping 2.5s ease-out infinite;
+  width: 50px; height: 50px; border-radius: 50%; border: 2.5px solid; opacity: 0;
+  animation: map-ping 2.4s ease-out infinite;
 }
 :deep(.custom-map-marker) {
   background: transparent !important;
@@ -536,7 +653,7 @@ defineExpose({
 }
 
 @keyframes map-ping {
-  0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
 }
 </style>

@@ -193,12 +193,12 @@
         </div>
 
         <!-- Map Card -->
-        <div class="card stagger-5" ref="mapCardRef">
-          <div class="card-label">
+        <div class="card stagger-5" :class="{ 'map-card-fullscreen': isMapFullscreen }" ref="mapCardRef">
+          <div v-if="!isMapFullscreen" class="card-label">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
             {{ t.mapTitle }}
           </div>
-          <div class="map-wrapper">
+          <div class="map-wrapper" :class="{ 'fullscreen-active': isMapFullscreen }">
             <MapView 
               ref="mapViewRef" 
               :latitude="latitude" 
@@ -207,6 +207,7 @@
               :language="currentLang" 
               :theme="isDarkTheme ? 'dark' : 'light'" 
               @select-location="handleMapSelectLocation"
+              @fullscreen-change="onMapFullscreenChange"
             />
           </div>
         </div>
@@ -425,6 +426,11 @@ const hasCalculated = ref(false);
 const showDisclaimer = ref(false);
 const mapViewRef = ref(null);
 const mapCardRef = ref(null);
+const isMapFullscreen = ref(false);
+
+const onMapFullscreenChange = (isFs) => {
+  isMapFullscreen.value = isFs;
+};
 
 // Toast Notification
 const toastMessage = ref('');
@@ -1237,6 +1243,42 @@ const handleCalculate = (e) => {
 .map-wrapper {
   height: 240px; border-radius: 12px; overflow: hidden;
   border: 1px solid var(--border); transition: border-color 0.35s;
+}
+
+.map-wrapper.fullscreen-active {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  z-index: 999995 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+.card.map-card-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  z-index: 999990 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* =============================================
