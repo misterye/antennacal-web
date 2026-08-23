@@ -1,3 +1,21 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production / Build outputs
+dist/
+dist-ssr/
+build/
+out/
+bin/
+gen/
+*.apk
+*.aab
+*.aar
+*.dex
+*.class
+
 # Logs
 logs
 *.log
@@ -7,24 +25,47 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Environment & Local Configs
+.env
+.env.local
+.env.*.local
 *.local
+local.properties
 
-# Editor directories and files
+# Android & Gradle Build Artifacts & Caches
+.gradle/
+.gradle-home/
+.android/
+.android-home/
+.kotlin/
+.cxx/
+.externalNativeBuild/
+captures/
+.navigation/
+
+# Editor & IDE files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
+*.iml
+*.iws
+*.ipr
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*~
 
-# Capacitor & Android
+# Keystores & Signing
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Capacitor & Android directory
 android/
-*.apk
 capacitor.config.json
 capacitor.config.ts
