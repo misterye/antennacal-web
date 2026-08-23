@@ -108,6 +108,15 @@ export const translations = {
             openSourceDesc: '本项目中使用的开源组件（Leaflet, Vue 3, Vite, Capacitor 等）均遵循其各自的开源许可协议（MIT / Apache 2.0 / BSD 等）。'
         },
 
+        // 安卓应用下载
+        androidDownloadCardTitle: '下载安卓客户端',
+        androidDownloadCardDesc: '扫描二维码安装 Android 原生测试体验包',
+        androidDownloadModalTitle: '安卓客户端下载',
+        androidDownloadScanHint: '请使用微信或企业微信扫码下载',
+        androidDownloadDisclaimerTitle: '开发阶段与免责提示',
+        androidDownloadDisclaimerText: '该应用目前仍处在持续开发与内测阶段，暂未上架官方应用商店。安装与使用过程中的兼容性及相关风险由用户自行承担，开发者做全面免责声明。',
+        closeModal: '关闭',
+
         // 开发者联系方式
         developerContactTitle: '开发者联系方式',
         developerEmailLabel: '技术支持与商务联系：',
@@ -224,6 +233,15 @@ export const translations = {
             desc: 'The user interface, algorithmic architecture, calculation models, and design assets of this application are protected under domestic and international copyright and intellectual property laws. Unauthorized duplication, reverse engineering, redistribution, or commercial use is strictly prohibited without explicit written authorization.',
             openSourceDesc: 'Third-party open source packages incorporated in this project (Leaflet, Vue 3, Vite, Capacitor, etc.) remain governed by their respective open source licenses (MIT / Apache 2.0 / BSD).'
         },
+
+        // Android App Download
+        androidDownloadCardTitle: 'Download Android App',
+        androidDownloadCardDesc: 'Scan QR code to install Android native beta package',
+        androidDownloadModalTitle: 'Android App Download',
+        androidDownloadScanHint: 'Please scan the QR code with WeChat or WeCom to install',
+        androidDownloadDisclaimerTitle: 'Development Phase & Disclaimer',
+        androidDownloadDisclaimerText: 'This app is currently in continuous development and beta testing, and has not yet been listed on official app stores. Any compatibility risks are borne by the user, and the developer makes a full disclaimer.',
+        closeModal: 'Close',
 
         // Developer Contact
         developerContactTitle: 'Developer Contact',

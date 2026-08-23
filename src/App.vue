@@ -279,6 +279,22 @@
           </div>
         </div>
 
+        <!-- Android App Download Entry Card -->
+        <div class="card card-interactive download-card stagger-6" @click="showDownloadModal = true">
+          <div class="disclaimer-card-content">
+            <div class="disclaimer-card-icon download-card-icon">📱</div>
+            <div class="disclaimer-card-text-wrap">
+              <div class="disclaimer-card-title">{{ t.androidDownloadCardTitle }}</div>
+              <div class="disclaimer-card-desc">{{ t.androidDownloadCardDesc }}</div>
+            </div>
+            <div class="disclaimer-card-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+
         <!-- App Footer with Developer Email -->
         <footer class="app-footer stagger-6">
           <div class="footer-contact-box">
@@ -393,6 +409,54 @@
         </button>
       </div>
     </div>
+
+    <!-- Android App Download Modal -->
+    <transition name="modal-fade">
+      <div v-if="showDownloadModal" class="modal-backdrop" @click.self="showDownloadModal = false">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div class="modal-title-group">
+              <span class="modal-icon">📱</span>
+              <h3>{{ t.androidDownloadModalTitle }}</h3>
+            </div>
+            <button class="btn-modal-close" @click="showDownloadModal = false" :title="t.closeModal" :aria-label="t.closeModal" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <!-- QR Code Box -->
+            <div class="qrcode-wrapper">
+              <div class="qrcode-box">
+                <img src="/android_download_qrcode.png" alt="Android App Download QR Code" class="qrcode-img" />
+              </div>
+              <div class="qrcode-hint">
+                <span class="qrcode-hint-icon">💬</span>
+                <span>{{ t.androidDownloadScanHint }}</span>
+              </div>
+            </div>
+
+            <!-- Disclaimer Box -->
+            <div class="download-disclaimer-box">
+              <div class="download-disclaimer-header">
+                <span class="download-disclaimer-icon">⚠️</span>
+                <span class="download-disclaimer-title">{{ t.androidDownloadDisclaimerTitle }}</span>
+              </div>
+              <p class="download-disclaimer-text">{{ t.androidDownloadDisclaimerText }}</p>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-modal-action" @click="showDownloadModal = false" type="button">
+              {{ t.closeModal }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -403,6 +467,8 @@ import { translations } from './utils/i18n';
 import { searchAdminRegions, chinaAdminRegions } from './utils/chinaAdminData';
 import MapView from './components/MapView.vue';
 import CompassAlignment from './components/CompassAlignment.vue';
+
+const showDownloadModal = ref(false);
 
 const satelliteNames = Object.keys(satelliteData);
 // Pre-build list with position for display
@@ -670,8 +736,23 @@ const handleOutsideClick = (e) => {
     closeRegionDropdown();
   }
 };
-onMounted(() => document.addEventListener('mousedown', handleOutsideClick));
-onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideClick));
+
+const handleGlobalKeyDown = (e) => {
+  if (e.key === 'Escape') {
+    if (showDownloadModal.value) {
+      showDownloadModal.value = false;
+    }
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleOutsideClick);
+  window.addEventListener('keydown', handleGlobalKeyDown);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleOutsideClick);
+  window.removeEventListener('keydown', handleGlobalKeyDown);
+});
 
 const currentSatInfo = computed(() => satelliteInfo[selectedSatelliteName.value] || null);
 
@@ -1620,5 +1701,221 @@ const handleCalculate = (e) => {
   color: var(--cyan);
   background: var(--cyan-dim);
   box-shadow: 0 4px 16px var(--cyan-dim);
+}
+
+/* =============================================
+   ANDROID DOWNLOAD MODAL
+   ============================================= */
+.download-card-icon {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+.card-interactive:hover .download-card-icon {
+  border-color: var(--green) !important;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(3, 7, 18, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+}
+
+.modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-header);
+}
+
+.modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-icon {
+  font-size: 18px;
+}
+
+.modal-title-group h3 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.btn-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.qrcode-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.qrcode-box {
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qrcode-img {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  display: block;
+  border-radius: 6px;
+}
+
+.qrcode-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  background: var(--cyan-dim);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 999px;
+  text-align: center;
+}
+
+:global(.light-theme) .qrcode-hint {
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.1);
+  border-color: rgba(2, 132, 199, 0.25);
+}
+
+.download-disclaimer-box {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.download-disclaimer-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.download-disclaimer-icon {
+  font-size: 13px;
+}
+
+.download-disclaimer-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.download-disclaimer-text {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+  text-align: justify;
+}
+
+.modal-footer {
+  padding: 12px 20px 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-modal-action {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-modal-action:hover {
+  background: var(--border);
+  color: var(--cyan);
+}
+
+/* Modal Transitions */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes modalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 </style>
