@@ -431,7 +431,7 @@
             <!-- QR Code Box -->
             <div class="qrcode-wrapper">
               <div class="qrcode-box">
-                <img src="/android_download_qrcode.png" alt="Android App Download QR Code" class="qrcode-img" />
+                <img src="/android_apk_download.png" alt="Android App Download QR Code" class="qrcode-img" />
               </div>
               <div class="qrcode-hint">
                 <span class="qrcode-hint-icon">💬</span>
