@@ -287,9 +287,8 @@
               <span class="footer-contact-label">{{ t.developerEmailLabel }}</span>
               <a :href="`mailto:${t.developerEmail}`" class="footer-contact-link" :title="t.developerEmail">{{ t.developerEmail }}</a>
             </div>
-            <button class="footer-copy-btn" @click="copyEmail(t.developerEmail)" :title="t.copyEmail" type="button">
+            <button class="footer-copy-btn" @click="copyEmail(t.developerEmail)" :title="t.copyEmail" :aria-label="t.copyEmail" type="button">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              <span>{{ t.copyEmail }}</span>
             </button>
           </div>
           <div class="footer-copyright-line">
@@ -1419,20 +1418,20 @@ const handleCalculate = (e) => {
 .footer-copy-btn {
   background: var(--bg-surface-2);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 11px;
+  border-radius: 6px;
+  padding: 4px 6px;
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   transition: all 0.2s;
 }
 .footer-copy-btn:hover {
   color: var(--cyan);
   border-color: var(--cyan);
   background: var(--cyan-dim);
+  box-shadow: 0 0 8px var(--cyan-dim);
 }
 
 .footer-copyright-line {
