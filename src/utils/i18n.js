@@ -1,15 +1,18 @@
 // 语言配置文件
 export const translations = {
     zh: {
-        // 标题
+        // 标题与通用
         title: '寻星参数计算器',
+        back: '返回',
+        switchTheme: '主题切换',
+        calculating: '计算中...',
 
         // 输入部分
         satelliteSelect: '卫星选择',
         stationLatitude: '小站纬度',
         stationLongitude: '小站经度',
-        latitudePlaceholder: '例如: 30.00',
-        longitudePlaceholder: '例如: 120.00',
+        latitudePlaceholder: '例如: 31.2400',
+        longitudePlaceholder: '例如: 121.5000',
         getLocation: '获取位置',
         calculate: '计算参数',
 
@@ -20,12 +23,18 @@ export const translations = {
         elevation: '俯仰角：',
         azimuth: '方位角：',
         polarization: '极化角（正为顺时针）：',
-        polarizationHint: '面对天线反馈面，正数为顺时针，负数为逆时针',
+        polarizationHint: '面对天线反射面，正数为顺时针，负数为逆时针',
 
         // 地图
-        mapTitle: '位置及天线方位',
+        mapTitle: '地理位置与天线指向',
+        fullscreen: '全屏显示',
+        exitFullscreen: '退出全屏',
+        recenterMap: '回到小站位置',
+        southIndicator: '向下为正南',
+        antennaDirection: '天线指向',
 
         // 卫星信息
+        satelliteDetails: '卫星详情',
         orbit: '轨道类型：',
         status: '卫星状态：',
         operator: '运营商：',
@@ -43,75 +52,121 @@ export const translations = {
         invalidInput: '请输入有效的经纬度并选择卫星',
 
         // 主题切换
-        switchToLight: '切换到亮主题',
-        switchToDark: '切换到暗主题',
+        switchToLight: '切换到浅色主题',
+        switchToDark: '切换到深色主题',
 
         // 语言切换
         switchLanguage: '切换语言',
 
         // 搜索框
-        searchPlaceholder: '搜索卫星…',
+        searchPlaceholder: '搜索卫星名称或经度…',
         noResults: '无匹配卫星',
 
+        // 行政区划选择
+        regionSelect: '行政区域选择',
+        searchRegionPlaceholder: '输入省/市/区县名称快速过滤…',
+        noRegionResults: '无匹配行政区域',
+        clearRegion: '清空已选地区',
+        levelProvince: '省/直辖市',
+        levelCity: '地级市/州',
+        levelDistrict: '区/县/旗',
+        regionSelectedToast: '已选择行政区: ',
+
+        // 地图点选
+        pickOnMap: '在地图上点选',
+        pickingActive: '点选模式中：点击地图任意位置设为小站',
+        exitPicking: '退出点选',
+        pointSelectedToast: '已从地图选择坐标: ',
+
         // 免责声明
-        disclaimerCardTitle: '免责声明',
-        disclaimerCardDesc: '使用前请阅读数据精度、版权及法律责任说明',
+        disclaimerCardTitle: '免责声明与版权信息',
+        disclaimerCardDesc: '阅读数据精度、版权归属、安全守则及开发者联系方式',
         disclaimerTitle: '免责声明与服务条款',
         disclaimerBack: '返回计算器',
         disclaimerContent: {
-            title1: '1. 数据与计算参考',
-            desc1: '本应用提供的所有计算结果（包括方位角、俯仰角、极化角及相关罗盘指向）均由数学公式根据公开轨道数据估算得出，仅供学习、学术交流和业余爱好者安装调试参考，不保证其绝对精确性。请勿将本软件用于任何高风险、商业通信部署、专业导航、应急通信或生命财产安全相关的关键任务。用户因参考本应用数据而进行任何实际天线调整、设备操作所产生的风险和后果，均由用户自行承担。',
-            title2: '2. 版权与数据来源说明',
-            desc2: '本应用所包含的卫星名称、轨道参数及详情信息均收集自互联网公开渠道与公共数据库。卫星名称、运营商名称及商标等权利均归属于其合法所有者。本应用不对此类第三方版权内容主张任何权利。若您认为本应用展示的数据或信息侵犯了您的合法权益，请随时与我们联系，我们将在验证后及时删除或修改相关内容。',
-            title3: '3. 商业免责与无担保声明',
-            desc3: '本软件按“原样”（"AS IS"）提供，不附带任何形式的明示或暗示保证。在法律允许的最大范围内，开发者及版权持有者不对因使用或无法使用本软件而导致的任何直接、间接、附带、特别或后果性损失（包括但不限于硬件损坏、信号中断、商业利润损失、数据丢失或人身伤害）承担任何责任。',
-            title4: '4. 第三方服务与地图',
-            desc4: '本应用使用的地图及地理定位功能由第三方开源服务（如 Leaflet, OpenStreetMap 等）或您的设备浏览器/系统 API 提供。地图的准确性、完整性以及定位功能的精度和可用性受第三方服务质量的影响。本应用不承诺地图服务的连续性和精准度。',
-            footer: '您使用本应用即代表您已阅读并同意上述所有条款。'
-        }
+            title1: '1. 数据精度与计算参考',
+            desc1: '本应用提供的所有计算结果（包括方位角、俯仰角、极化角及相关电子罗盘指向）均依据公开静止轨道数据与球面几何模型估算得出，仅供工程安装调试参考、业余无线电爱好与教学研讨使用，不承诺绝对精度。严禁将本软件用于生命财产安全、航空航天测控、高危特种通信等严苛任务。实际施工操作所产生的任何后果均由操作人员自行承担。',
+            title2: '2. 数据来源与第三方权益',
+            desc2: '本软件收录的卫星星历名称、轨道经度、卫星平台及运营商信息均汇编自公开发布的国际卫星数据库与公共互联网。卫星名称、运营商标识等商业权益均归属于其合法持有人。本应用不对第三方商标与资产主张任何专有权利。如权利人提出合理异议，请通过联系邮箱告知，我们将在核实后及时更新或移除。',
+            title3: '3. 责任限制与无担保声明',
+            desc3: '本软件按“现状”（"AS IS"）免费提供，不附带任何明示或暗示的商业适销性或特定用途适用性担保。在法律允许的最大限度内，开发者不对因使用、误用或无法使用本工具而导致的任何直接、间接、偶然或连带损失（包括设备损坏、信号中断、通信违约或数据丢失）承担民事责任。',
+            title4: '4. 地图服务与网络环境',
+            desc4: '地图底图及逆地理服务由高德地图等第三方开放平台或浏览器定位硬件接口提供。受网络环境、设备传感器精度及第三方接口稳定性影响，地图定位可能存在偏差或延迟，本应用不承担第三方基础服务波动所引起的责任。',
+            title5: '5. 施工安全与电磁防护守则',
+            desc5: '天线安装调试常涉及高空架设、雷雨天气防雷接地、强风环境固定以及高功率微波设备辐射。操作人员必须具备相应专业资质，穿戴防坠落护具，严格遵守高压用电与微波电磁辐射安全距离规范，严防高空坠物与人身伤害。',
+            title6: '6. 无线电法规遵从',
+            desc6: '用户架设和使用卫星地面接收与发射设备须严格遵守所在地国家/地区的无线电管理条例及卫星电视广播地面接收设施管理规定，按规定取得合法许可与设台核准，严禁违规占用频率或进行非法无线电发射。',
+            footer: '您使用本应用即表示您已充分理解并自愿接受上述全部条款与守则。'
+        },
+
+        // 版权声明
+        copyrightCardTitle: '版权声明',
+        copyrightTitle: '知识产权与版权声明',
+        copyrightContent: {
+            allRights: '© 2026 Satelc / AntennaCal. 保留所有权利。',
+            desc: '本应用的交互界面设计、参数算法封装、前端工程架构及相关视觉资产均受中华人民共和国著作权法及国际知识产权公约保护。未经开发者书面许可，任何机构或个人不得擅自复制、反向工程、二次打包或用于商业营利。',
+            openSourceDesc: '本项目中使用的开源组件（Leaflet, Vue 3, Vite, Capacitor 等）均遵循其各自的开源许可协议（MIT / Apache 2.0 / BSD 等）。'
+        },
+
+        // 开发者联系方式
+        developerContactTitle: '开发者联系方式',
+        developerEmailLabel: '技术支持与商务联系：',
+        developerEmail: 'kevin@satelc.com',
+        copyEmail: '复制邮箱',
+        copied: '已复制到剪贴板！',
+        footerCopyright: '© 2026 Satelc · AntennaCal'
     },
 
     en: {
-        // Titles
+        // Titles & General
         title: 'Satellite Finder Calculator',
+        back: 'Back',
+        switchTheme: 'Toggle Theme',
+        calculating: 'Calculating...',
 
         // Input section
         satelliteSelect: 'Select Satellite',
         stationLatitude: 'Station Latitude',
         stationLongitude: 'Station Longitude',
-        latitudePlaceholder: 'e.g., 30.00',
-        longitudePlaceholder: 'e.g., 120.00',
-        getLocation: 'Get Location',
-        calculate: 'Calculate',
+        latitudePlaceholder: 'e.g., 31.2400',
+        longitudePlaceholder: 'e.g., 121.5000',
+        getLocation: 'Get GPS Location',
+        calculate: 'Calculate Parameters',
 
         // Output section
-        results: 'Results',
-        resultsPlaceholder: 'Press "Calculate" to get satellite pointing data',
+        results: 'Calculation Results',
+        resultsPlaceholder: 'Click "Calculate Parameters" to compute pointing angles',
         orbitalLongitude: 'Orbital Longitude:',
         elevation: 'Elevation Angle:',
         azimuth: 'Azimuth Angle:',
-        polarization: 'Polarization (+ is CW):',
+        polarization: 'Polarization Angle (+ is CW):',
         polarizationHint: 'Facing antenna feed: positive is clockwise, negative is counter-clockwise',
 
         // Map
-        mapTitle: 'Location & Antenna Direction',
+        mapTitle: 'Station Location & Antenna Direction',
+        fullscreen: 'Fullscreen',
+        exitFullscreen: 'Exit Fullscreen',
+        recenterMap: 'Recenter to Station',
+        southIndicator: 'South ↓',
+        antennaDirection: 'Antenna Direction',
 
         // Satellite info
-        orbit: 'Orbit:',
-        status: 'Status:',
+        satelliteDetails: 'Satellite Details',
+        orbit: 'Orbit Type:',
+        status: 'Operational Status:',
         operator: 'Operator:',
-        platform: 'Platform:',
+        platform: 'Bus / Platform:',
         vehicle: 'Launch Vehicle:',
-        mass: 'Mass:',
+        mass: 'Launch Mass:',
         launchDate: 'Launch Date:',
         lifetime: 'Design Life:',
-        comments: 'Comments:',
+        comments: 'Remarks & Notes:',
 
         // Messages
-        locationSuccess: 'Location acquired successfully!',
-        locationError: 'Failed to get location, please enter manually',
-        locationNotSupported: 'Your browser does not support geolocation',
-        invalidInput: 'Please enter valid coordinates and select a satellite',
+        locationSuccess: 'GPS Location acquired successfully!',
+        locationError: 'Failed to get location, please enter coordinates manually',
+        locationNotSupported: 'Your browser or device does not support geolocation',
+        invalidInput: 'Please enter valid station coordinates and select a satellite',
 
         // Theme toggle
         switchToLight: 'Switch to Light Theme',
@@ -121,24 +176,61 @@ export const translations = {
         switchLanguage: 'Switch Language',
 
         // Search
-        searchPlaceholder: 'Search satellite…',
-        noResults: 'No matching satellites',
+        searchPlaceholder: 'Search satellite name or longitude…',
+        noResults: 'No matching satellites found',
+
+        // Administrative Region
+        regionSelect: 'Administrative Region',
+        searchRegionPlaceholder: 'Search province, city, district…',
+        noRegionResults: 'No matching administrative regions found',
+        clearRegion: 'Clear selected region',
+        levelProvince: 'Province / Municipality',
+        levelCity: 'City / Prefecture',
+        levelDistrict: 'District / County',
+        regionSelectedToast: 'Selected Region: ',
+
+        // Map Picking
+        pickOnMap: 'Pick on Map',
+        pickingActive: 'Picking mode: click anywhere on map to set station',
+        exitPicking: 'Exit Picking',
+        pointSelectedToast: 'Selected coordinates from map: ',
 
         // Disclaimer
-        disclaimerCardTitle: 'Disclaimer',
-        disclaimerCardDesc: 'Read data accuracy, copyright, and legal liability statements',
-        disclaimerTitle: 'Disclaimer & Terms',
+        disclaimerCardTitle: 'Disclaimer & Copyright',
+        disclaimerCardDesc: 'Read data accuracy, copyright, safety rules, and contact info',
+        disclaimerTitle: 'Disclaimer & Terms of Service',
         disclaimerBack: 'Back to Calculator',
         disclaimerContent: {
-            title1: '1. Data & Calculation Reference',
-            desc1: 'All calculations provided by this application (including azimuth, elevation, polarization angle, and compass alignment) are estimated using mathematical formulas based on public orbital data. They are for educational, academic exchange, and hobbyist installation/debugging reference only. We do not guarantee their absolute accuracy. Do not use this software for high-risk operations, commercial communication deployment, professional navigation, emergency communications, or other critical missions related to life and property safety. Any risk and consequence of actual antenna adjustments or equipment operations carried out by the user in reference to this application\'s data shall be borne solely by the user.',
-            title2: '2. Copyright & Data Sources',
-            desc2: 'The satellite names, orbital parameters, and details included in this application are gathered from public internet channels and open databases. All rights to satellite names, operator names, and trademarks belong to their respective legal owners. This application does not claim any rights over such third-party copyrighted content. If you believe that any data or information displayed in this application infringes upon your legal rights, please contact us, and we will promptly remove or modify the relevant content upon verification.',
-            title3: '3. Commercial Disclaimer & No Warranty',
-            desc3: 'This software is provided "AS IS", without warranty of any kind, express or implied. To the maximum extent permitted by law, the developer and copyright holders shall not be liable for any direct, indirect, incidental, special, or consequential damages (including, but not limited to, hardware damage, signal disruption, loss of business profits, data loss, or personal injury) arising out of the use or inability to use this software.',
-            title4: '4. Third-Party Services & Maps',
-            desc4: 'The map and geolocation features used in this application are provided by third-party open-source services (such as Leaflet, OpenStreetMap) or your device\'s browser/system APIs. The accuracy and integrity of the maps, as well as the precision and availability of positioning functions, depend on the service quality of these third parties. This application does not guarantee the continuity and accuracy of the map services.',
-            footer: 'By using this application, you acknowledge that you have read and agreed to all the above terms.'
-        }
+            title1: '1. Data Accuracy & Engineering Reference',
+            desc1: 'All pointing metrics (including azimuth, elevation, polarization angle, and electronic compass alignment) are mathematical estimations based on public geostationary orbital data and spherical trigonometry. They are provided solely for amateur radio, installation debugging reference, and educational purposes. We do not guarantee absolute precision. Do not deploy this software in mission-critical, aviation, maritime safety, emergency response, or life-safety applications. Any risk arising from antenna manipulation rests entirely with the user.',
+            title2: '2. Data Sources & Third-Party Rights',
+            desc2: 'Satellite names, orbital parameters, bus specifications, and operator identities are compiled from public international orbital databases and internet resources. Trademarks and brand names remain the sole property of their respective holders. If any content unintentionally infringes your rights, please reach out via our contact email for prompt verification and remediation.',
+            title3: '3. Limited Liability & No Warranty',
+            desc3: 'This software is provided "AS IS", without warranty of any kind, express or implied. Under no circumstances shall the developer or copyright holders be held liable for any direct, indirect, incidental, special, or consequential damages (including equipment malfunction, transmission loss, business downtime, or data corruption) arising from the use or inability to use this software.',
+            title4: '4. Third-Party Map & Positioning Services',
+            desc4: 'Map tiles and reverse geocoding are powered by third-party providers (such as AutoNavi / OpenStreetMap) and device hardware sensors. Map accuracy, availability, and positioning latency are subject to third-party infrastructure. The developer disclaims responsibility for third-party network outages or sensor inaccuracies.',
+            title5: '5. Installation Safety & RF Radiation Guidelines',
+            desc5: 'Satellite dish installation involves high-altitude rigging, lightning grounding, wind load protection, and high-power microwave RF radiation hazards. Personnel must maintain certified safety equipment, observe high-voltage electrical codes, and maintain safe exposure distances from active RF feeds to prevent severe personal injury.',
+            title6: '6. Radio Regulatory Compliance',
+            desc6: 'Users operating satellite ground equipment must strictly comply with local national telecommunications and radio management regulations. Ensure all necessary spectrum licenses and station approvals are held prior to receiving or transmitting satellite signals.',
+            footer: 'By using this application, you acknowledge that you have read, understood, and consented to all the above terms.'
+        },
+
+        // Copyright Notice
+        copyrightCardTitle: 'Copyright Notice',
+        copyrightTitle: 'Intellectual Property & Copyright',
+        copyrightContent: {
+            allRights: '© 2026 Satelc / AntennaCal. All Rights Reserved.',
+            desc: 'The user interface, algorithmic architecture, calculation models, and design assets of this application are protected under domestic and international copyright and intellectual property laws. Unauthorized duplication, reverse engineering, redistribution, or commercial use is strictly prohibited without explicit written authorization.',
+            openSourceDesc: 'Third-party open source packages incorporated in this project (Leaflet, Vue 3, Vite, Capacitor, etc.) remain governed by their respective open source licenses (MIT / Apache 2.0 / BSD).'
+        },
+
+        // Developer Contact
+        developerContactTitle: 'Developer Contact',
+        developerEmailLabel: 'Support & Inquiries:',
+        developerEmail: 'kevin@satelc.com',
+        copyEmail: 'Copy Email',
+        copied: 'Email copied to clipboard!',
+        footerCopyright: '© 2026 Satelc · AntennaCal'
     }
 };
